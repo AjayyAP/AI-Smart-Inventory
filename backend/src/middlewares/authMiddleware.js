@@ -19,6 +19,12 @@ const protect = async (req, res, next) => {
         res.status(401).json({ message: 'User not found' });
         return;
       }
+
+      // New: Security check - Prevent non-Active users (Staff) from using the app
+      if (req.user.status !== 'Active' && req.user.role !== 'Admin') {
+        res.status(403).json({ message: 'Your account is pending Admin approval.' });
+        return;
+      }
       
       next();
     } catch (error) {

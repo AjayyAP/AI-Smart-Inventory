@@ -16,12 +16,13 @@ An integrated **Google Gemini AI Assistant** acts as a smart co-pilot, automatic
 
 ## 🔥 Features List
 
-*   **🔒 Role-Based Access Control (RBAC):** Strict separation of `Admin` and `Staff` roles. Admins have destructive privileges (Delete) and oversee Activity Logs; Staff can only read, create, and update entries.
+*   **🔒 Strict Account Gating:** New registrations are automatically placed in a `Pending` state. Users cannot access the dashboard until an Admin explicitly updates their status to `Active`.
+*   **🔒 Role-Based Access Control (RBAC):** Strict separation of `Admin` and `Staff` roles. Admins have destructive privileges (Delete), approve accounts, and oversee Activity Logs; Staff can only read, create, and update entries.
 *   **🤖 AI Copilot (Gemini API):** A global AI chatbot for instant inventory querying and a one-click AI product description generator.
 *   **📊 Dynamic Dashboard Analytics:** Real-time data aggregations displaying active low-stock alerts, total revenue, and a live "Recent Transactions" auditor table.
 *   **☁️ Cloudinary Image Uploads:** Intercepts frontend image uploads via `multer` and streams them securely to Cloudinary to keep the MongoDB instance lightweight.
-*   **📧 Secure Authentication:** JWT-based sessions, `bcrypt` password hashing, and real-time OTP NodeMailer verifications.
-*   **📦 Full Supply Chain CRUD:** Complete management structures for **Products**, **Categories**, **Suppliers**, and **Orders**.
+*   **📧 Secure Authentication:** JWT-based sessions, `bcrypt` password hashing, robust frontend/backend session validation, and real-time OTP NodeMailer verifications.
+*   **📦 Full Supply Chain CRUD:** Complete management structures for **Products**, **Categories**, **Suppliers**, and **Orders** (including real-time status updates and order editing).
 *   **🌗 Premium UX/UI:** Designed with a sleek Dark/Light mode toggle, smooth React-Toastify notifications, and responsive Bootstrap grids.
 
 ---

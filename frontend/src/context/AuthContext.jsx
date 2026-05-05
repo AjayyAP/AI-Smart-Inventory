@@ -9,11 +9,30 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    const validateSession = async () => {
+      const storedUser = localStorage.getItem('user');
+      if (!storedUser) {
+        setLoading(false);
+        return;
+      }
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser); // Optimistically set user
+
+      // Validate token with backend to check if user is still Active
+      try {
+        const response = await api.get('/auth/me');
+        // If user is pending, backend returns 403 → api.js interceptor clears storage & redirects
+        setUser(response.data);
+        localStorage.setItem('user', JSON.stringify({ ...parsedUser, ...response.data }));
+      } catch (error) {
+        // Token invalid or user is pending → clear session
+        setUser(null);
+        localStorage.removeItem('user');
+      } finally {
+        setLoading(false);
+      }
+    };
+    validateSession();
   }, []);
 
   const login = async (email, password) => {
@@ -43,12 +62,19 @@ export const AuthProvider = ({ children }) => {
   const verifyOtp = async (email, otp) => {
     try {
       const response = await api.post('/auth/verify-otp', { email, otp });
-      setUser(response.data);
-      localStorage.setItem('user', JSON.stringify(response.data));
-      toast.success('Email verified successfully!');
+      // Only log the user in if we actually got a token back
+      if (response.data && response.data.token) {
+        setUser(response.data);
+        localStorage.setItem('user', JSON.stringify(response.data));
+        toast.success('Email verified successfully!');
+      } else {
+        // Account is pending approval - don't log in
+        toast.info(response.data?.message || 'Email verified! Awaiting Admin approval.');
+      }
       return response.data;
     } catch (error) {
-      toast.error(error.response?.data?.message || 'OTP Verification failed');
+      const msg = error.response?.data?.message || 'OTP Verification failed';
+      toast.info(msg);
       throw error;
     }
   };

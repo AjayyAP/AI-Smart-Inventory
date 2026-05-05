@@ -58,6 +58,7 @@ exports.registerUser = async (req, res) => {
       password,
       otp,
       otpExpiresAt,
+      status: 'Pending', // Always start as Pending - Admin must approve
     });
 
     if (user) {
@@ -108,6 +109,20 @@ exports.verifyOtp = async (req, res) => {
     user.otpExpiresAt = undefined;
     await user.save();
 
+    // DEBUG - remove after testing
+    console.log('=== OTP VERIFIED ===');
+    console.log('User email:', user.email);
+    console.log('User role:', user.role);
+    console.log('User status:', user.status);
+    console.log('Status check (should be true for new staff):', user.status !== 'Active' && user.role !== 'Admin');
+
+    // If account is not explicitly 'Active' and not an admin, block the automatic login
+    if (user.status !== 'Active' && user.role !== 'Admin') {
+      return res.status(403).json({ 
+        message: 'Email verified! Please wait for Admin approval before logging in.' 
+      });
+    }
+
     res.json({
       _id: user._id,
       name: user.name,
@@ -134,11 +149,18 @@ exports.authUser = async (req, res) => {
         return res.status(401).json({ message: 'Please verify your email via OTP first.' });
       }
 
+      // Prevent lock-out: Admins are always allowed to log in. 
+      // Staff must be explicitly 'Active' to enter.
+      if (user.status !== 'Active' && user.role !== 'Admin') {
+        return res.status(403).json({ message: 'Your account is pending Admin approval.' });
+      }
+
       res.json({
         _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
+        status: user.status || 'Active', // Include status in response, default for old accounts
         token: generateToken(user._id),
       });
     } else {
@@ -226,4 +248,17 @@ exports.changePassword = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+// @desc    Get current logged-in user (session validation)
+// @route   GET /api/auth/me
+// @access  Private
+exports.getMe = async (req, res) => {
+  res.json({
+    _id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+    role: req.user.role,
+    status: req.user.status || 'Active',
+  });
 };

@@ -33,6 +33,8 @@ app.get('/', (req, res) => {
 
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 
+const userRoutes = require('./routes/userRoutes');
+
 // Use Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
@@ -42,6 +44,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/activity-logs', activityRoutes);
+app.use('/api/users', userRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema(
       enum: ['Admin', 'Manager', 'Staff'],
       default: 'Staff',
     },
+    status: {
+      type: String,
+      enum: ['Pending', 'Active'],
+      default: 'Pending',
+    },
     otp: {
       type: String,
     },

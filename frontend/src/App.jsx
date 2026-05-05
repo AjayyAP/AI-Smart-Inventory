@@ -18,6 +18,7 @@ import Products from './pages/Products';
 import Orders from './pages/Orders';
 import Reports from './pages/Reports';
 import ActivityLogs from './pages/ActivityLogs';
+import Users from './pages/Users';
 
 // Real pages imported above
 
@@ -53,6 +54,7 @@ function App() {
               <Route path="orders" element={<Orders />} />
               <Route path="reports" element={<Reports />} />
               <Route path="activity-logs" element={<ActivityLogs />} />
+              <Route path="users" element={<Users />} />
             </Route>
 
             {/* Fallback */}

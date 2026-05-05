@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { Container, Row, Col, Table as BSTable } from 'react-bootstrap';
-import { FaPlus, FaCheck, FaTimes, FaSearch, FaTrash } from 'react-icons/fa';
+import { Container, Row, Col, Table as BSTable, Form } from 'react-bootstrap';
+import { FaPlus, FaCheck, FaTimes, FaSearch, FaTrash, FaEdit } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import orderService from '../services/orderService';
 import api from '../services/api';
@@ -23,6 +23,7 @@ const Orders = () => {
   
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   
   // Filter States
   const [filters, setFilters] = useState({
@@ -96,7 +97,7 @@ const Orders = () => {
     setFormData({ ...formData, items: newItems });
   };
 
-  const handleCreateOrder = async () => {
+  const handleSubmitOrder = async () => {
     let finalItems = [...formData.items];
     
     // Auto-add if user forgot to click the '+' button but filled the fields
@@ -122,23 +123,46 @@ const Orders = () => {
     setIsSubmitting(true);
     const totalAmount = finalItems.reduce((sum, item) => sum + (item.priceAtPurchase * item.quantity), 0);
 
+    const payload = {
+      orderNumber: formData.orderNumber,
+      supplier: formData.supplier,
+      items: finalItems.map(i => ({ product: i.product, quantity: i.quantity, priceAtPurchase: i.priceAtPurchase })),
+      totalAmount
+    };
+
     try {
-      await orderService.createOrder({
-        orderNumber: formData.orderNumber,
-        supplier: formData.supplier,
-        items: finalItems.map(i => ({ product: i.product, quantity: i.quantity, priceAtPurchase: i.priceAtPurchase })),
-        totalAmount
-      });
-      toast.success('Order created successfully');
+      if (editingId) {
+        await orderService.updateOrder(editingId, payload);
+        toast.success('Order updated successfully');
+      } else {
+        await orderService.createOrder(payload);
+        toast.success('Order created successfully');
+      }
       setShowModal(false);
+      setEditingId(null);
       setFormData({ orderNumber: `ORD-${Date.now()}`, supplier: '', items: [] });
       setCurrentItem({ product: '', quantity: 1, priceAtPurchase: 0 });
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to create order');
+      toast.error(error.response?.data?.message || `Failed to ${editingId ? 'update' : 'create'} order`);
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEditClick = (order) => {
+    setEditingId(order._id);
+    setFormData({
+      orderNumber: order.orderNumber,
+      supplier: order.supplier?._id || order.supplier,
+      items: order.items.map(i => ({
+        product: i.product?._id || i.product,
+        name: i.product?.name || 'Unknown',
+        quantity: i.quantity,
+        priceAtPurchase: i.priceAtPurchase
+      }))
+    });
+    setShowModal(true);
   };
 
   const updateStatus = async (id, newStatus) => {
@@ -177,26 +201,31 @@ const Orders = () => {
       <td>{ord.supplier?.name || 'N/A'}</td>
       <td>${ord.totalAmount.toFixed(2)}</td>
       <td>
-        <Badge bg={ord.status === 'Completed' ? 'success' : ord.status === 'Pending' ? 'warning' : 'danger'}>
-          {ord.status}
-        </Badge>
+        <Form.Select 
+          size="sm" 
+          value={ord.status} 
+          onChange={(e) => updateStatus(ord._id, e.target.value)}
+          style={{ 
+            width: '130px', 
+            fontWeight: '600',
+            color: ord.status === 'Completed' ? 'var(--bs-success)' : ord.status === 'Pending' ? 'var(--bs-warning)' : 'var(--bs-danger)'
+          }}
+        >
+          <option value="Pending">Pending</option>
+          <option value="Completed">Completed / Confirm</option>
+        </Form.Select>
       </td>
       <td>{ord.user?.name || 'System'}</td>
       <td className="text-end">
-        {ord.status === 'Pending' && (
+        {user?.role === 'Admin' && (
           <>
-            <Button variant="outline-success" size="sm" className="me-2" onClick={() => updateStatus(ord._id, 'Completed')}>
-              <FaCheck />
+            <Button variant="outline-primary" size="sm" onClick={() => handleEditClick(ord)}>
+              <FaEdit />
             </Button>
-            <Button variant="outline-danger" size="sm" onClick={() => updateStatus(ord._id, 'Cancelled')}>
-              <FaTimes />
+            <Button variant="outline-danger" size="sm" className="ms-2" onClick={() => handleDelete(ord._id)}>
+              <FaTrash />
             </Button>
           </>
-        )}
-        {user?.role === 'Admin' && (
-          <Button variant="outline-danger" size="sm" className="ms-2" onClick={() => handleDelete(ord._id)}>
-            <FaTrash />
-          </Button>
         )}
       </td>
     </tr>
@@ -206,7 +235,11 @@ const Orders = () => {
     <Container fluid>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold mb-0 text-gradient">Purchase Orders</h2>
-        <Button icon={FaPlus} onClick={() => setShowModal(true)}>
+        <Button icon={FaPlus} onClick={() => {
+          setEditingId(null);
+          setFormData({ orderNumber: `ORD-${Date.now()}`, supplier: '', items: [] });
+          setShowModal(true);
+        }}>
           Create Order
         </Button>
       </div>
@@ -226,8 +259,7 @@ const Orders = () => {
               onChange={handleFilterChange}
               options={[
                 { label: 'Pending', value: 'Pending' },
-                { label: 'Completed', value: 'Completed' },
-                { label: 'Cancelled', value: 'Cancelled' }
+                { label: 'Completed', value: 'Completed' }
               ]}
               className="mb-0"
             />
@@ -264,11 +296,15 @@ const Orders = () => {
 
       <Modal 
         show={showModal} 
-        onHide={() => setShowModal(false)} 
+        onHide={() => {
+          setShowModal(false);
+          setEditingId(null);
+        }} 
         size="lg"
-        title="Create Purchase Order"
-        onConfirm={handleCreateOrder}
+        title={editingId ? 'Edit Order' : 'Create Purchase Order'}
+        onConfirm={handleSubmitOrder}
         isSubmitting={isSubmitting}
+        confirmLabel={editingId ? 'Update Order' : 'Create Order'}
       >
         <Row>
           <Col md={6}>

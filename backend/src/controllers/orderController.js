@@ -88,34 +88,36 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
-// @desc    Create new order
-// @route   POST /api/orders
+// @desc    Update order
+// @route   PUT /api/orders/:id
 // @access  Private
-exports.createOrder = async (req, res) => {
+exports.updateOrder = async (req, res) => {
   try {
-    const { orderNumber, supplier, items, totalAmount } = req.body;
-
+    const { supplier, items, totalAmount } = req.body;
+    
     if (items && items.length === 0) {
       return res.status(400).json({ message: 'No order items' });
     }
 
-    const order = new Order({
-      orderNumber,
-      user: req.user._id,
-      supplier,
-      items,
-      totalAmount,
-    });
+    const order = await Order.findById(req.params.id);
 
-    const createdOrder = await order.save();
+    if (order) {
+      order.supplier = supplier;
+      order.items = items;
+      order.totalAmount = totalAmount;
 
-    await ActivityLog.create({
-      user: req.user._id,
-      action: `Created Order: ${orderNumber}`,
-      entityId: createdOrder._id,
-    });
+      const updatedOrder = await order.save();
 
-    res.status(201).json(createdOrder);
+      await ActivityLog.create({
+        user: req.user._id,
+        action: `Updated Order: ${order.orderNumber}`,
+        entityId: updatedOrder._id,
+      });
+
+      res.json(updatedOrder);
+    } else {
+      res.status(404).json({ message: 'Order not found' });
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

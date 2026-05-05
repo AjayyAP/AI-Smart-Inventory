@@ -39,11 +39,18 @@ const Signup = () => {
   const handleVerifyOtp = async () => {
     setIsSubmitting(true);
     try {
-      await verifyOtp(email, otp);
+      const result = await verifyOtp(email, otp);
       setShowOtpModal(false);
-      navigate('/dashboard');
+      // If we got a token, go to dashboard. If not (pending), go to login.
+      if (result && result.token) {
+        navigate('/dashboard');
+      } else {
+        navigate('/login');
+      }
     } catch (error) {
-       // Error handled in context
+      // On error (like 403), close modal and go to login
+      setShowOtpModal(false);
+      navigate('/login');
     } finally {
       setIsSubmitting(false);
     }

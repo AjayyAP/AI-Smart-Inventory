@@ -64,7 +64,10 @@ const Layout = () => {
               <Nav.Link as={Link} to="/orders" onClick={handleClose} className="px-4 py-3 border-bottom">Orders</Nav.Link>
               <Nav.Link as={Link} to="/reports" onClick={handleClose} className="px-4 py-3 border-bottom">Reports</Nav.Link>
               {user?.role === 'Admin' && (
-                <Nav.Link as={Link} to="/activity-logs" onClick={handleClose} className="px-4 py-3">Activity Logs</Nav.Link>
+                <>
+                  <Nav.Link as={Link} to="/activity-logs" onClick={handleClose} className="px-4 py-3 border-bottom">Activity Logs</Nav.Link>
+                  <Nav.Link as={Link} to="/users" onClick={handleClose} className="px-4 py-3">Manage Users</Nav.Link>
+                </>
               )}
             </Nav>
           </Offcanvas.Body>

@@ -20,11 +20,21 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Only redirect to login if the error is 401 AND it's not a login attempt
-    if (error.response && error.response.status === 401 && !error.config.url.includes('/auth/login')) {
+    const status = error.response?.status;
+    const url = error.config?.url || '';
+
+    // Auto-logout on 401 (expired token) - but not during login itself
+    if (status === 401 && !url.includes('/auth/login')) {
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+
+    // Auto-logout on 403 (pending account trying to use protected routes) - but not during signup/otp
+    if (status === 403 && !url.includes('/auth/verify-otp') && !url.includes('/auth/login')) {
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+
     return Promise.reject(error);
   }
 );
