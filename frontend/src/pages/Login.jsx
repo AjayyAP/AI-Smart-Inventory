@@ -15,6 +15,7 @@ const Login = () => {
   const [otp, setOtp] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
   
   const { login, verifyOtp } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -22,12 +23,16 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setPendingApproval(false);
     try {
       await login(email, password);
       navigate('/dashboard');
     } catch (error) {
-      if (error.response?.data?.message?.includes('verify your email')) {
+      const msg = error.response?.data?.message || '';
+      if (msg.includes('verify your email')) {
         setShowOtpModal(true);
+      } else if (msg.includes('pending Admin approval')) {
+        setPendingApproval(true);
       }
     } finally {
       setIsSubmitting(false);
@@ -41,8 +46,10 @@ const Login = () => {
       setShowOtpModal(false);
       if (result && result.token) {
         navigate('/dashboard');
+      } else {
+        setPendingApproval(true);
       }
-      // If no token (pending), stay on login page - toast already shown
+      // If no token (pending), stay on login page and show pending message
     } catch (error) {
       setShowOtpModal(false); // close modal on error
     } finally {
@@ -61,6 +68,13 @@ const Login = () => {
                   <h1 className="fw-bold text-gradient mb-2" style={{ letterSpacing: '-1px' }}>Welcome Back</h1>
                   <p className="text-muted">Sign in to manage your inventory</p>
                 </div>
+                
+                {pendingApproval && (
+                  <div className="alert alert-warning text-center mb-4 border-0 shadow-sm" style={{ backgroundColor: '#fff3cd', color: '#856404' }}>
+                    <strong>Awaiting Approval</strong><br/>
+                    Your email is verified, but an Admin must approve your account before you can log in.
+                  </div>
+                )}
                 
                 <form onSubmit={handleSubmit}>
                   <Input 
