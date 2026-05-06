@@ -9,10 +9,12 @@ const Modal = ({
   children, 
   footer, 
   size = 'md',
-  submitText = 'Save Changes',
+  submitText,
+  confirmLabel,
   onConfirm,
   isSubmitting = false
 }) => {
+  const buttonLabel = confirmLabel || submitText || 'Save Changes';
   return (
     <BSModal show={show} onHide={onHide} size={size} centered>
       <BSModal.Header closeButton className="border-0">
@@ -26,7 +28,7 @@ const Modal = ({
           <>
             <Button variant="secondary" onClick={onHide}>Cancel</Button>
             <Button variant="primary" onClick={onConfirm} loading={isSubmitting}>
-              {submitText}
+              {buttonLabel}
             </Button>
           </>
         )}

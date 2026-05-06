@@ -26,11 +26,16 @@ const Signup = () => {
     setIsSubmitting(true);
     try {
       await register(name, email, password);
+      // Registration succeeded - show OTP modal
       setShowOtpModal(true);
     } catch (error) {
-      if (error.response?.data?.message?.includes('verify your OTP')) {
+      // AuthContext already shows a toast with the error
+      // If it's an "already exists" error but not verified, show OTP modal anyway
+      const msg = error.response?.data?.message || '';
+      if (msg.includes('OTP') || msg.includes('verify') || msg.includes('New OTP')) {
         setShowOtpModal(true);
       }
+      // For "User already exists" errors, AuthContext toast is enough
     } finally {
       setIsSubmitting(false);
     }
