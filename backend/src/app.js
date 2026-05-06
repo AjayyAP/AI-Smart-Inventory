@@ -14,7 +14,12 @@ const activityRoutes = require('./routes/activityRoutes');
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    // Reflect the requesting origin to bypass the wildcard '*' limitation with credentials: true
+    return callback(null, origin);
+  },
   credentials: true
 }));
 app.use(express.json());
