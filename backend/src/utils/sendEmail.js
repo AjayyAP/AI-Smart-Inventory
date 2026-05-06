@@ -1,13 +1,21 @@
 const nodemailer = require('nodemailer');
 
 const sendEmail = async (options) => {
+  // Explicit Gmail SMTP configuration
   const transporter = nodemailer.createTransport({
-    service: 'gmail', // You can switch this depending on your EMAIL_USER provider
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: process.env.EMAIL_USER?.trim(), // Trim to remove accidental spaces from Render env
+      pass: process.env.EMAIL_PASS?.trim(),
     },
   });
+
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error('CRITICAL ERROR: EMAIL_USER or EMAIL_PASS environment variables are missing on this server!');
+    throw new Error('Email configuration is missing on the server.');
+  }
 
   const mailOptions = {
     from: `"AI Smart Inventory" <${process.env.EMAIL_USER}>`,
