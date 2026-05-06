@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Container, Row, Col } from 'react-bootstrap';
 
 // Common Components
@@ -15,10 +15,13 @@ const Login = () => {
   const [otp, setOtp] = useState('');
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pendingApproval, setPendingApproval] = useState(false);
   
   const { login, verifyOtp } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Read pendingApproval flag passed from Signup page after OTP verification, or default false
+  const [pendingApproval, setPendingApproval] = useState(location.state?.pendingApproval || false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

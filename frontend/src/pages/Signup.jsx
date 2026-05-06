@@ -41,16 +41,17 @@ const Signup = () => {
     try {
       const result = await verifyOtp(email, otp);
       setShowOtpModal(false);
-      // If we got a token, go to dashboard. If not (pending), go to login.
+      // If we got a token, go to dashboard. If not (pending), go to login with pending flag.
       if (result && result.token) {
         navigate('/dashboard');
       } else {
-        navigate('/login');
+        navigate('/login', { state: { pendingApproval: true } });
       }
     } catch (error) {
-      // On error (like 403), close modal and go to login
+      // On error (like 403 pending), close modal and go to login with pending flag
       setShowOtpModal(false);
-      navigate('/login');
+      const isPending = error.response?.status === 403;
+      navigate('/login', { state: { pendingApproval: isPending } });
     } finally {
       setIsSubmitting(false);
     }
