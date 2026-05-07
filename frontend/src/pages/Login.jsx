@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../context/appContexts';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Container, Row, Col } from 'react-bootstrap';
 
@@ -53,7 +53,7 @@ const Login = () => {
         setPendingApproval(true);
       }
       // If no token (pending), stay on login page and show pending message
-    } catch (error) {
+    } catch {
       setShowOtpModal(false); // close modal on error
     } finally {
       setIsSubmitting(false);

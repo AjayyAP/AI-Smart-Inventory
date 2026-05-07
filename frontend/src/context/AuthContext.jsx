@@ -1,8 +1,7 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { AuthContext } from './appContexts';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-
-export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -24,7 +23,7 @@ export const AuthProvider = ({ children }) => {
         // If user is pending, backend returns 403 → api.js interceptor clears storage & redirects
         setUser(response.data);
         localStorage.setItem('user', JSON.stringify({ ...parsedUser, ...response.data }));
-      } catch (error) {
+      } catch {
         // Token invalid or user is pending → clear session
         setUser(null);
         localStorage.removeItem('user');

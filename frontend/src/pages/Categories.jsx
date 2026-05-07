@@ -1,5 +1,5 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
+import { AuthContext } from '../context/appContexts';
 import { Container, Row, Col } from 'react-bootstrap';
 import { FaTrash, FaPlus, FaSearch, FaEdit } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -23,24 +23,24 @@ const Categories = () => {
   const [search, setSearch] = useState('');
   const [formData, setFormData] = useState({ name: '', description: '' });
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await categoryService.getCategories({ search });
       setCategories(data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch categories');
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchCategories();
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }, [search]);
+  }, [fetchCategories]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -83,7 +83,7 @@ const Categories = () => {
         await categoryService.deleteCategory(id);
         toast.success('Category deleted');
         fetchCategories();
-      } catch (error) {
+      } catch {
         toast.error('Failed to delete category');
       }
     }

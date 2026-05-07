@@ -17,6 +17,7 @@ exports.registerUser = async (req, res) => {
     const { name, email, password } = req.body;
 
     const userExists = await User.findOne({ email });
+    const userCount = await User.countDocuments();
 
     if (userExists) {
       if (userExists.isEmailVerified) {
@@ -27,6 +28,10 @@ exports.registerUser = async (req, res) => {
       const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
       userExists.otp = newOtp;
       userExists.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      if (userCount === 1) {
+        userExists.role = 'Admin';
+        userExists.status = 'Active';
+      }
       await userExists.save();
 
       const message = `Your new confirmation OTP is ${newOtp}. It is valid for 10 minutes.`;
@@ -58,7 +63,8 @@ exports.registerUser = async (req, res) => {
       password,
       otp,
       otpExpiresAt,
-      status: 'Pending', // Always start as Pending - Admin must approve
+      role: userCount === 0 ? 'Admin' : 'Staff',
+      status: userCount === 0 ? 'Active' : 'Pending',
     });
 
     if (user) {
@@ -77,7 +83,9 @@ exports.registerUser = async (req, res) => {
       }
 
       res.status(201).json({
-        message: 'User registered. Please check email for OTP.',
+        message: userCount === 0
+          ? 'Admin account registered. Please check email for OTP.'
+          : 'User registered. Please check email for OTP.',
         email: user.email,
       });
     } else {
@@ -107,19 +115,19 @@ exports.verifyOtp = async (req, res) => {
     user.isEmailVerified = true;
     user.otp = undefined;
     user.otpExpiresAt = undefined;
+    const adminExists = await User.exists({ role: 'Admin' });
+    if (!adminExists) {
+      user.role = 'Admin';
+      user.status = 'Active';
+    }
     await user.save();
 
-    // DEBUG - remove after testing
-    console.log('=== OTP VERIFIED ===');
-    console.log('User email:', user.email);
-    console.log('User role:', user.role);
-    console.log('User status:', user.status);
-    console.log('Status check (should be true for new staff):', user.status !== 'Active' && user.role !== 'Admin');
-
-    // If account is not explicitly 'Active' and not an admin, block the automatic login
+    // If account is not explicitly 'Active' and not an admin, verify email but do not log in yet.
     if (user.status !== 'Active' && user.role !== 'Admin') {
-      return res.status(403).json({ 
-        message: 'Email verified! Please wait for Admin approval before logging in.' 
+      return res.json({
+        message: 'Email verified! Please wait for Admin approval before logging in.',
+        email: user.email,
+        pendingApproval: true,
       });
     }
 
@@ -147,6 +155,13 @@ exports.authUser = async (req, res) => {
     if (user && (await user.matchPassword(password))) {
       if (!user.isEmailVerified) {
         return res.status(401).json({ message: 'Please verify your email via OTP first.' });
+      }
+
+      const adminExists = await User.exists({ role: 'Admin' });
+      if (!adminExists) {
+        user.role = 'Admin';
+        user.status = 'Active';
+        await user.save();
       }
 
       // Prevent lock-out: Admins are always allowed to log in. 

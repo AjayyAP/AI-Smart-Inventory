@@ -17,7 +17,7 @@ const Reports = () => {
     try {
       const { data } = await productService.getProducts();
       setProducts(data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch inventory reports');
     } finally {
       setLoading(false);

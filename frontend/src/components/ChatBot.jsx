@@ -21,7 +21,7 @@ const ChatBot = () => {
     try {
       const { data } = await api.post('/ai/chat', { message: userMessage });
       setMessages(prev => [...prev, { sender: 'bot', text: data.reply }]);
-    } catch (error) {
+    } catch {
       setMessages(prev => [...prev, { sender: 'bot', text: 'Sorry, I am having trouble connecting to the AI service.' }]);
     } finally {
       setIsTyping(false);

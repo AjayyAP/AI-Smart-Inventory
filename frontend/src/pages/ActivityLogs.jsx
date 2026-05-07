@@ -16,7 +16,7 @@ const ActivityLogs = () => {
     try {
       const { data } = await activityService.getActivityLogs();
       setLogs(data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch activity logs');
     } finally {
       setLoading(false);

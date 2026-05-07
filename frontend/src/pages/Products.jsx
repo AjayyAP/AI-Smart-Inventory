@@ -1,6 +1,6 @@
 import { useLocation } from 'react-router-dom';
-import { useContext, useEffect, useState } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { useCallback, useContext, useEffect, useState } from 'react';
+import { AuthContext } from '../context/appContexts';
 import { Container, Row, Col, Badge, Form } from 'react-bootstrap';
 import { FaPlus, FaTrash, FaSearch, FaMagic, FaEdit } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -55,7 +55,7 @@ const Products = () => {
     }
   }, [location.search]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [prodsRes, catsRes, supsRes] = await Promise.all([
@@ -66,12 +66,12 @@ const Products = () => {
       setProducts(prodsRes.data);
       setCategories(catsRes.data);
       setSuppliers(supsRes.data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch product data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -79,7 +79,7 @@ const Products = () => {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [filters]);
+  }, [fetchData]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -149,7 +149,7 @@ const Products = () => {
         await productService.deleteProduct(id);
         toast.success('Product deleted');
         fetchData();
-      } catch (error) {
+      } catch {
         toast.error('Failed to delete product');
       }
     }

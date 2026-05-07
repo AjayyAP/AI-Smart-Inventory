@@ -1,5 +1,5 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
+import { AuthContext } from '../context/appContexts';
 import { Container, Row, Col } from 'react-bootstrap';
 import { FaTrash, FaPlus, FaSearch, FaEdit } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -25,24 +25,24 @@ const Suppliers = () => {
     name: '', contactEmail: '', contactPhone: '', address: ''
   });
 
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = useCallback(async () => {
     setLoading(true);
     try {
       const { data } = await supplierService.getSuppliers({ search });
       setSuppliers(data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch suppliers');
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchSuppliers();
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }, [search]);
+  }, [fetchSuppliers]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -90,7 +90,7 @@ const Suppliers = () => {
         await supplierService.deleteSupplier(id);
         toast.success('Supplier deleted');
         fetchSuppliers();
-      } catch (error) {
+      } catch {
         toast.error('Failed to delete supplier');
       }
     }

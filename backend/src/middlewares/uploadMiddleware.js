@@ -1,9 +1,10 @@
 const multer = require('multer');
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const cloudinary = require('../config/cloudinary');
+const cloudinaryStorage = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary');
+require('../config/cloudinary');
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
+const storage = cloudinaryStorage({
+  cloudinary,
   params: {
     folder: 'ai-smart-inventory/products',
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],

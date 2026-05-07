@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../context/appContexts';
 import { Container, Row, Col, Badge, Form } from 'react-bootstrap';
 import { FaTrash, FaCheckCircle, FaUserShield } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -18,7 +18,7 @@ const Users = () => {
     try {
       const data = await userService.getUsers();
       setUsers(data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load users');
     } finally {
       setLoading(false);
@@ -69,7 +69,7 @@ const Users = () => {
     { label: 'Actions' }
   ];
 
-  const renderUserRow = (u, idx) => (
+  const renderUserRow = (u) => (
     <tr key={u._id}>
       <td className="fw-medium">{u.name}</td>
       <td className="text-muted">{u.email}</td>

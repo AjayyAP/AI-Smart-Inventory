@@ -1,7 +1,6 @@
 import React, { useContext } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
-import { ThemeContext } from '../context/ThemeContext';
+import { AuthContext, ThemeContext } from '../context/appContexts';
 import { Navbar, Nav, Container, Offcanvas } from 'react-bootstrap';
 import { FaSun, FaMoon, FaSignOutAlt, FaBars } from 'react-icons/fa';
 import ChatBot from './ChatBot';

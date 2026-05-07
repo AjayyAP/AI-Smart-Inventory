@@ -1,5 +1,5 @@
-import React, { useContext, useEffect, useState } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
+import { AuthContext } from '../context/appContexts';
 import { Container, Row, Col, Table as BSTable, Form } from 'react-bootstrap';
 import { FaPlus, FaCheck, FaTimes, FaSearch, FaTrash, FaEdit } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -42,7 +42,7 @@ const Orders = () => {
 
   const [currentItem, setCurrentItem] = useState({ product: '', quantity: 1, priceAtPurchase: 0 });
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [ordRes, supRes, prodRes] = await Promise.all([
@@ -53,19 +53,19 @@ const Orders = () => {
       setOrders(ordRes.data);
       setSuppliers(supRes.data);
       setProducts(prodRes.data);
-    } catch (error) {
+    } catch {
       toast.error('Failed to fetch orders data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       fetchData();
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }, [filters]);
+  }, [fetchData]);
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
@@ -170,7 +170,7 @@ const Orders = () => {
       await orderService.updateOrderStatus(id, newStatus);
       toast.success(`Order marked as ${newStatus}`);
       fetchData();
-    } catch (error) {
+    } catch {
       toast.error('Failed to update status');
     }
   };
@@ -180,7 +180,7 @@ const Orders = () => {
         await orderService.deleteOrder(id);
         toast.success('Order deleted successfully');
         fetchData();
-      } catch (error) {
+      } catch {
         toast.error('Failed to delete order');
       }
     }

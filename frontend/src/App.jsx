@@ -5,7 +5,8 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import { AuthProvider, AuthContext } from './context/AuthContext';
+import { AuthContext } from './context/appContexts';
+import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';

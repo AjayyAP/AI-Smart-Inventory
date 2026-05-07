@@ -2,7 +2,7 @@ import React, { useEffect, useState, useContext } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
 import { FaBoxOpen, FaTruck, FaShoppingCart, FaExclamationTriangle, FaDollarSign } from 'react-icons/fa';
 import { Table } from 'react-bootstrap';
-import { ThemeContext } from '../context/ThemeContext';
+import { ThemeContext } from '../context/appContexts';
 import analyticsService from '../services/analyticsService';
 import aiService from '../services/aiService';
 import Card from '../components/common/Card';
@@ -10,21 +10,25 @@ import { useNavigate } from 'react-router-dom';
 import Badge from '../components/common/Badge';
 import Button from '../components/common/Button';
 
-const KpiCard = ({ title, value, icon: Icon, color, bgOpacity = '10' }) => (
-  <Card className="h-100 border-0 shadow-sm p-2">
-     <div className="d-flex align-items-center justify-content-between p-2">
-        <div>
-          <h6 className="text-muted mb-2 small text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.7rem' }}>{title}</h6>
-          <h2 className="mb-0 fw-bold" style={{ letterSpacing: '-0.5px' }}>
-            {typeof value === 'number' && title.includes('Revenue') ? `$${value.toLocaleString()}` : value}
-          </h2>
-        </div>
-        <div className={`p-3 rounded-circle bg-${color} bg-opacity-${bgOpacity}`}>
-          <Icon size={22} className={`text-${color}`} />
-        </div>
-     </div>
-  </Card>
-);
+const KpiCard = ({ title, value, icon, color, bgOpacity = '10' }) => {
+  const iconElement = React.createElement(icon, { size: 22, className: `text-${color}` });
+
+  return (
+    <Card className="h-100 border-0 shadow-sm p-2">
+       <div className="d-flex align-items-center justify-content-between p-2">
+          <div>
+            <h6 className="text-muted mb-2 small text-uppercase fw-bold" style={{ letterSpacing: '1px', fontSize: '0.7rem' }}>{title}</h6>
+            <h2 className="mb-0 fw-bold" style={{ letterSpacing: '-0.5px' }}>
+              {typeof value === 'number' && title.includes('Revenue') ? `$${value.toLocaleString()}` : value}
+            </h2>
+          </div>
+          <div className={`p-3 rounded-circle bg-${color} bg-opacity-${bgOpacity}`}>
+            {iconElement}
+          </div>
+       </div>
+    </Card>
+  );
+};
 
 const Dashboard = () => {
   const [summary, setSummary] = useState({
@@ -63,9 +67,6 @@ const Dashboard = () => {
       setReorderAi(prev => ({ ...prev, loading: false }));
     }
   };
-
-  const chartTheme = theme === 'dark' ? '#fff' : '#333';
-  const gridColor = theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
 
   return (
     <Container fluid>

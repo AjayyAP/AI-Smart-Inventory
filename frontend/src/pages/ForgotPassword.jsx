@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
+import { AuthContext } from '../context/appContexts';
 import { useNavigate, Link } from 'react-router-dom';
 import { Container, Row, Col } from 'react-bootstrap';
 
@@ -24,7 +24,7 @@ const ForgotPassword = () => {
     try {
       await forgotPassword(email);
       setStep(2); // Move to reset step
-    } catch (error) {
+    } catch {
       // Error handled in context via toast
     } finally {
       setIsSubmitting(false);
@@ -37,7 +37,7 @@ const ForgotPassword = () => {
     try {
       await resetPassword(email, otp, newPassword);
       navigate('/login'); // Redirect to login on success
-    } catch (error) {
+    } catch {
        // Error handled in context
     } finally {
       setIsSubmitting(false);

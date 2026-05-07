@@ -93,7 +93,7 @@ exports.createProduct = async (req, res) => {
     } = req.body;
 
     // Cloudinary returns secure_url for the image URL
-    const images = req.files ? req.files.map((file) => file.path) : [];
+    const images = req.files ? req.files.map((file) => file.secure_url || file.url || file.path).filter(Boolean) : [];
 
     const productExists = await Product.findOne({ sku });
     if (productExists) {
@@ -148,7 +148,7 @@ exports.updateProduct = async (req, res) => {
           const publicId = imageUrl.split('/').slice(-2).join('/').replace(/\.[^.]+$/, '');
           try { await cloudinary.uploader.destroy(`ai-smart-inventory/products/${publicId}`); } catch(e) {}
         }
-        product.images = req.files.map((file) => file.path);
+        product.images = req.files.map((file) => file.secure_url || file.url || file.path).filter(Boolean);
       }
 
       const updatedProduct = await product.save();
