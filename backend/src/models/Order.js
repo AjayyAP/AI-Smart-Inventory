@@ -39,10 +39,37 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    paymentStatus: {
+      type: String,
+      enum: ['Pending', 'Partial', 'Paid'],
+      default: 'Pending',
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['Cash', 'UPI', 'Bank Transfer', 'Credit', 'Other'],
+      default: 'Cash',
+    },
+    paidAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    balanceAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    paymentDate: {
+      type: Date,
+    },
     status: {
       type: String,
       enum: ['Pending', 'Completed', 'Cancelled'],
       default: 'Pending',
+    },
+    stockDeducted: {
+      type: Boolean,
+      default: false,
     },
   },
   {

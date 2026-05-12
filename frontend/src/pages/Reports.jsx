@@ -62,8 +62,8 @@ const Reports = () => {
     <Container fluid>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="fw-bold text-gradient mb-1">Inventory Reporting</h2>
-          <p className="text-muted small">Comprehensive view of your inventory status.</p>
+          <h2 className="fw-bold text-gradient mb-1">Godown Inventory Reporting</h2>
+          <p className="text-muted small">Comprehensive view of godown stock status.</p>
         </div>
       </div>
 

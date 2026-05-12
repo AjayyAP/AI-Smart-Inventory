@@ -1,7 +1,7 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../context/appContexts';
 import { Container, Row, Col } from 'react-bootstrap';
-import { FaTrash, FaPlus, FaSearch, FaEdit } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaEdit } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import supplierService from '../services/supplierService';
 
@@ -126,9 +126,9 @@ const Suppliers = () => {
   return (
     <Container fluid>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold mb-0 text-gradient">Suppliers Management</h2>
+        <h2 className="fw-bold mb-0 text-gradient">Wholesale Suppliers</h2>
         <Button icon={FaPlus} onClick={() => { handleCloseModal(); setShowModal(true); }}>
-          Add Supplier
+          Add Wholesale Supplier
         </Button>
       </div>
 
@@ -158,13 +158,13 @@ const Suppliers = () => {
         show={showModal} 
         onHide={handleCloseModal} 
         size="lg"
-        title={editId ? "Edit Supplier" : "Add New Supplier"}
+        title={editId ? "Edit Wholesale Supplier" : "Add New Wholesale Supplier"}
         onConfirm={handleCreate}
         isSubmitting={isSubmitting}
       >
         <Row>
           <Col md={6}>
-            <Input label="Supplier Name" name="name" value={formData.name} onChange={handleChange} required />
+            <Input label="Wholesale Supplier Name" name="name" value={formData.name} onChange={handleChange} required />
           </Col>
           <Col md={6}>
             <Input label="Contact Email" type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} required />

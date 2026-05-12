@@ -13,7 +13,8 @@ const Input = ({
   rows, 
   options, 
   className = '',
-  error
+  error,
+  ...props
 }) => {
   return (
     <Form.Group className={`mb-3 ${className}`}>
@@ -43,6 +44,7 @@ const Input = ({
           as={as}
           rows={rows}
           isInvalid={!!error}
+          {...props}
         />
       )}
       

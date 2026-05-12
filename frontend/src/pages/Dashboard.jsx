@@ -36,8 +36,10 @@ const Dashboard = () => {
     totalSuppliers: 0,
     totalOrders: 0,
     totalRevenue: 0,
+    totalPendingAmount: 0,
     lowStockProducts: 0,
-    recentOrders: []
+    recentOrders: [],
+    pendingPayments: []
   });
   const { theme } = useContext(ThemeContext);
   const navigate = useNavigate();
@@ -71,8 +73,8 @@ const Dashboard = () => {
   return (
     <Container fluid>
       <div className="mb-4">
-        <h2 className="fw-bold text-gradient mb-1">Inventory Dashboard</h2>
-        <p className="text-muted">Real-time overview of your supply chain performance.</p>
+        <h2 className="fw-bold text-gradient mb-1">Godown Dashboard</h2>
+        <p className="text-muted">Real-time overview of godown stock and wholesale order performance.</p>
       </div>
 
       {/* KPI Cards */}
@@ -84,10 +86,10 @@ const Dashboard = () => {
           <KpiCard title="Active Orders" value={summary?.totalOrders || 0} icon={FaShoppingCart} color="success" />
         </Col>
         <Col md={3}>
-          <KpiCard title="Total Suppliers" value={summary?.totalSuppliers || 0} icon={FaTruck} color="info" />
+          <KpiCard title="Wholesale Suppliers" value={summary?.totalSuppliers || 0} icon={FaTruck} color="info" />
         </Col>
         <Col md={3}>
-          <KpiCard title="Low Stock Assets" value={summary?.lowStockProducts || 0} icon={FaExclamationTriangle} color="warning" />
+          <KpiCard title="Low Stock Products" value={summary?.lowStockProducts || 0} icon={FaExclamationTriangle} color="warning" />
         </Col>
       </Row>
 
@@ -100,8 +102,9 @@ const Dashboard = () => {
                 <thead>
                   <tr>
                     <th className="px-4 py-3">Order ID</th>
-                    <th className="py-3">Supplier</th>
+                    <th className="py-3">Wholesale Supplier</th>
                     <th className="py-3">Amount</th>
+                    <th className="py-3">Payment</th>
                     <th className="py-3">Status</th>
                     <th className="py-3">Date</th>
                   </tr>
@@ -114,6 +117,12 @@ const Dashboard = () => {
                         <td className="fw-medium">{order.supplier?.name || 'N/A'}</td>
                         <td className="fw-bold">${order.totalAmount.toFixed(2)}</td>
                         <td>
+                          <div className="small fw-semibold text-success">${(order.paidAmount || 0).toFixed(2)} paid</div>
+                          {(order.balanceAmount || 0) > 0 && (
+                            <div className="small text-warning">${order.balanceAmount.toFixed(2)} pending</div>
+                          )}
+                        </td>
+                        <td>
                           <Badge bg={order.status === 'Completed' ? 'success' : order.status === 'Cancelled' ? 'danger' : 'warning'}>
                             {order.status}
                           </Badge>
@@ -125,7 +134,7 @@ const Dashboard = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="text-center py-4 text-muted">No recent transactions found.</td>
+                      <td colSpan="6" className="text-center py-4 text-muted">No recent transactions found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -139,10 +148,33 @@ const Dashboard = () => {
                <div className="mb-3 p-3 bg-white bg-opacity-10 rounded-circle mx-auto d-flex align-items-center justify-content-center" style={{ width: '80px', height: '80px' }}>
                   <FaDollarSign size={32} />
                </div>
-               <h6 className="text-uppercase small fw-bold opacity-75 mb-2">Total Gross Revenue</h6>
+               <h6 className="text-uppercase small fw-bold opacity-75 mb-2">Total Sales Revenue</h6>
                <h1 className="fw-bold mb-0" style={{ fontSize: '2.5rem', letterSpacing: '-1px' }}>${(summary?.totalRevenue || 0).toLocaleString()}</h1>
-               <p className="mt-3 small opacity-75 fw-medium">Lifetime sales performance</p>
+               <p className="mt-3 small opacity-75 fw-medium">Total paid amount received</p>
             </Card>
+
+            {summary.totalPendingAmount > 0 && (
+              <Card title="Pending Payments" className="border-0 shadow-sm border-top border-warning border-4">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <span className="text-muted small fw-semibold">Total pending</span>
+                  <span className="fw-bold text-warning">${summary.totalPendingAmount.toLocaleString()}</span>
+                </div>
+                <div className="d-grid gap-2">
+                  {summary.pendingPayments.map((order) => (
+                    <div key={order._id} className="d-flex justify-content-between align-items-start border-bottom pb-2">
+                      <div>
+                        <div className="fw-semibold small">{order.supplier?.name || 'N/A'}</div>
+                        <div className="text-muted small">{order.orderNumber}</div>
+                      </div>
+                      <div className="text-end">
+                        <div className="fw-bold text-warning">${order.balanceAmount.toFixed(2)}</div>
+                        <div className="text-muted small">${(order.paidAmount || 0).toFixed(2)} paid</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
             
             {summary.lowStockProducts > 0 && (
               <Card title="AI Reorder Recommendations" className="border-0 shadow-sm border-top border-warning border-4">

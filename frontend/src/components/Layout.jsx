@@ -27,10 +27,10 @@ const Layout = () => {
           {user && (
             <Navbar.Brand href="#home" onClick={(e) => { e.preventDefault(); handleShow(); }}>
               <FaBars className="me-2" style={{ cursor: 'pointer' }} />
-              AI Smart Inventory
+              AI Smart Godown Inventory
             </Navbar.Brand>
           )}
-          {!user && <Navbar.Brand as={Link} to="/">AI Smart Inventory</Navbar.Brand>}
+          {!user && <Navbar.Brand as={Link} to="/">AI Smart Godown Inventory</Navbar.Brand>}
           
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav" className="justify-content-end">
@@ -59,8 +59,8 @@ const Layout = () => {
               <Nav.Link as={Link} to="/dashboard" onClick={handleClose} className="px-4 py-3 border-bottom">Dashboard</Nav.Link>
               <Nav.Link as={Link} to="/products" onClick={handleClose} className="px-4 py-3 border-bottom">Products</Nav.Link>
               <Nav.Link as={Link} to="/categories" onClick={handleClose} className="px-4 py-3 border-bottom">Categories</Nav.Link>
-              <Nav.Link as={Link} to="/suppliers" onClick={handleClose} className="px-4 py-3 border-bottom">Suppliers</Nav.Link>
-              <Nav.Link as={Link} to="/orders" onClick={handleClose} className="px-4 py-3 border-bottom">Orders</Nav.Link>
+              <Nav.Link as={Link} to="/suppliers" onClick={handleClose} className="px-4 py-3 border-bottom">Wholesale Suppliers</Nav.Link>
+              <Nav.Link as={Link} to="/orders" onClick={handleClose} className="px-4 py-3 border-bottom">Wholesale Orders</Nav.Link>
               <Nav.Link as={Link} to="/reports" onClick={handleClose} className="px-4 py-3 border-bottom">Reports</Nav.Link>
               {user?.role === 'Admin' && (
                 <>

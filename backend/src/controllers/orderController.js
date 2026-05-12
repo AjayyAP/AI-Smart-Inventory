@@ -1,16 +1,94 @@
 const Order = require('../models/Order');
+const Product = require('../models/Product');
 const ActivityLog = require('../models/ActivityLog');
+
+const calculatePayment = (totalAmount, paidAmount = 0) => {
+  const paid = Number(paidAmount) || 0;
+  const total = Number(totalAmount) || 0;
+  const balance = Math.max(total - paid, 0);
+  const paymentStatus = paid <= 0 ? 'Pending' : balance > 0 ? 'Partial' : 'Paid';
+
+  return { paidAmount: paid, balanceAmount: balance, paymentStatus };
+};
+
+const badRequest = (message) => {
+  const error = new Error(message);
+  error.statusCode = 400;
+  return error;
+};
+
+const updateProductStock = async (items, direction) => {
+  for (const item of items) {
+    const product = await Product.findById(item.product);
+    if (!product) {
+      throw badRequest('Product not found while updating stock');
+    }
+
+    const quantity = Number(item.quantity) || 0;
+    if (direction === 'deduct') {
+      if (product.stockLevel < quantity) {
+        throw badRequest(`Insufficient stock for ${product.name}`);
+      }
+      product.stockLevel -= quantity;
+    } else {
+      product.stockLevel += quantity;
+    }
+
+    await product.save();
+  }
+};
+
+const getProductId = (item) => item.product?._id?.toString() || item.product?.toString();
+
+const getQuantityByProduct = (items = []) =>
+  items.reduce((quantities, item) => {
+    const productId = getProductId(item);
+    if (!productId) return quantities;
+
+    quantities[productId] = (quantities[productId] || 0) + (Number(item.quantity) || 0);
+    return quantities;
+  }, {});
+
+const validateOrderItemsStock = async (items, existingOrder = null) => {
+  const requestedByProduct = getQuantityByProduct(items);
+  const productIds = Object.keys(requestedByProduct);
+
+  const products = await Product.find({ _id: { $in: productIds } });
+  const existingByProduct = existingOrder?.stockDeducted ? getQuantityByProduct(existingOrder.items) : {};
+
+  for (const productId of productIds) {
+    const product = products.find((item) => item._id.toString() === productId);
+    if (!product) {
+      throw badRequest('Product not found while validating stock');
+    }
+
+    const availableStock = product.stockLevel + (existingByProduct[productId] || 0);
+    if (requestedByProduct[productId] > availableStock) {
+      throw badRequest(
+        `Insufficient stock for ${product.name}. Available: ${availableStock}, requested: ${requestedByProduct[productId]}`
+      );
+    }
+  }
+};
+
+const sendError = (res, error) => {
+  res.status(error.statusCode || 500).json({ message: error.message });
+};
 
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
 exports.createOrder = async (req, res) => {
   try {
-    const { orderNumber, supplier, items, totalAmount } = req.body;
+    const { orderNumber, supplier, items, totalAmount, paymentMethod, paidAmount, paymentDate } = req.body;
 
-    if (items && items.length === 0) {
+    if (!items || items.length === 0) {
       return res.status(400).json({ message: 'No order items' });
     }
+
+    await validateOrderItemsStock(items);
+
+    const payment = calculatePayment(totalAmount, paidAmount);
 
     const order = new Order({
       orderNumber,
@@ -18,8 +96,15 @@ exports.createOrder = async (req, res) => {
       supplier,
       items,
       totalAmount,
+      paymentMethod,
+      paidAmount: payment.paidAmount,
+      balanceAmount: payment.balanceAmount,
+      paymentStatus: payment.paymentStatus,
+      paymentDate: payment.paidAmount > 0 ? paymentDate || new Date() : undefined,
+      stockDeducted: true,
     });
 
+    await updateProductStock(items, 'deduct');
     const createdOrder = await order.save();
 
     await ActivityLog.create({
@@ -30,7 +115,7 @@ exports.createOrder = async (req, res) => {
 
     res.status(201).json(createdOrder);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -64,7 +149,7 @@ exports.getOrders = async (req, res) => {
       .sort({ createdAt: -1 });
     res.json(orders);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -84,7 +169,7 @@ exports.getOrderById = async (req, res) => {
       res.status(404).json({ message: 'Order not found' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -93,18 +178,32 @@ exports.getOrderById = async (req, res) => {
 // @access  Private
 exports.updateOrder = async (req, res) => {
   try {
-    const { supplier, items, totalAmount } = req.body;
+    const { supplier, items, totalAmount, paymentMethod, paidAmount, paymentDate } = req.body;
     
-    if (items && items.length === 0) {
+    if (!items || items.length === 0) {
       return res.status(400).json({ message: 'No order items' });
     }
 
     const order = await Order.findById(req.params.id);
 
     if (order) {
+      if (order.stockDeducted) {
+        await validateOrderItemsStock(items, order);
+        await updateProductStock(order.items, 'restore');
+        await updateProductStock(items, 'deduct');
+      } else {
+        await validateOrderItemsStock(items);
+      }
+
       order.supplier = supplier;
       order.items = items;
       order.totalAmount = totalAmount;
+      if (paymentMethod) order.paymentMethod = paymentMethod;
+      const payment = calculatePayment(totalAmount, paidAmount);
+      order.paidAmount = payment.paidAmount;
+      order.balanceAmount = payment.balanceAmount;
+      order.paymentStatus = payment.paymentStatus;
+      order.paymentDate = payment.paidAmount > 0 ? paymentDate || order.paymentDate || new Date() : undefined;
 
       const updatedOrder = await order.save();
 
@@ -119,7 +218,7 @@ exports.updateOrder = async (req, res) => {
       res.status(404).json({ message: 'Order not found' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -131,7 +230,19 @@ exports.updateOrderStatus = async (req, res) => {
     const order = await Order.findById(req.params.id);
 
     if (order) {
-      order.status = req.body.status || order.status;
+      const nextStatus = req.body.status || order.status;
+
+      if (nextStatus === 'Completed' && !order.stockDeducted) {
+        await updateProductStock(order.items, 'deduct');
+        order.stockDeducted = true;
+      }
+
+      if (nextStatus !== 'Completed' && order.stockDeducted) {
+        await updateProductStock(order.items, 'restore');
+        order.stockDeducted = false;
+      }
+
+      order.status = nextStatus;
       const updatedOrder = await order.save();
 
       await ActivityLog.create({
@@ -145,7 +256,7 @@ exports.updateOrderStatus = async (req, res) => {
       res.status(404).json({ message: 'Order not found' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -156,6 +267,10 @@ exports.deleteOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
     if (order) {
+      if (order.stockDeducted) {
+        await updateProductStock(order.items, 'restore');
+      }
+
       const orderNumber = order.orderNumber;
       await order.deleteOne();
       
@@ -169,6 +284,6 @@ exports.deleteOrder = async (req, res) => {
       res.status(404).json({ message: 'Order not found' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };

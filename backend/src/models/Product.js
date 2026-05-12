@@ -19,11 +19,6 @@ const productSchema = new mongoose.Schema(
       ref: 'Category',
       required: true,
     },
-    supplier: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Supplier',
-      required: true,
-    },
     price: {
       type: Number,
       required: true,

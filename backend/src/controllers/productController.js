@@ -10,7 +10,7 @@ const cloudinary = require('../config/cloudinary');
 // @access  Private
 exports.getProducts = async (req, res) => {
   try {
-    const { search, category, supplier, minPrice, maxPrice, stockStatus } = req.query;
+    const { search, category, minPrice, maxPrice, stockStatus } = req.query;
     
     let query = {};
 
@@ -25,11 +25,6 @@ exports.getProducts = async (req, res) => {
     // Filter by Category
     if (category) {
       query.category = category;
-    }
-
-    // Filter by Supplier
-    if (supplier) {
-      query.supplier = supplier;
     }
 
     // Filter by Price Range
@@ -48,7 +43,6 @@ exports.getProducts = async (req, res) => {
 
     const products = await Product.find(query)
       .populate('category', 'name')
-      .populate('supplier', 'name')
       .sort({ createdAt: -1 });
       
     res.json(products);
@@ -63,8 +57,7 @@ exports.getProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('category', 'name')
-      .populate('supplier', 'name');
+      .populate('category', 'name');
       
     if (product) {
       res.json(product);
@@ -86,7 +79,6 @@ exports.createProduct = async (req, res) => {
       sku,
       description,
       category,
-      supplier,
       price,
       stockLevel,
       reorderPoint,
@@ -105,7 +97,6 @@ exports.createProduct = async (req, res) => {
       sku,
       description,
       category,
-      supplier,
       price,
       stockLevel,
       reorderPoint,
@@ -137,10 +128,9 @@ exports.updateProduct = async (req, res) => {
       product.sku = req.body.sku || product.sku;
       product.description = req.body.description || product.description;
       product.category = req.body.category || product.category;
-      product.supplier = req.body.supplier || product.supplier;
-      product.price = req.body.price || product.price;
-      product.stockLevel = req.body.stockLevel || product.stockLevel;
-      product.reorderPoint = req.body.reorderPoint || product.reorderPoint;
+      product.price = req.body.price ?? product.price;
+      product.stockLevel = req.body.stockLevel ?? product.stockLevel;
+      product.reorderPoint = req.body.reorderPoint ?? product.reorderPoint;
       
       if (req.files && req.files.length > 0) {
         // Delete old images from Cloudinary

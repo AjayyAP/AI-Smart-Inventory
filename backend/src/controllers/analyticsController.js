@@ -11,10 +11,13 @@ exports.getDashboardSummary = async (req, res) => {
     const totalSuppliers = await Supplier.countDocuments();
     const totalOrders = await Order.countDocuments();
 
-    // Calculate total order value
+    // Revenue is cash received, not the full invoice amount.
     const ordersValue = await Order.aggregate([
-      { $match: { status: 'Completed' } },
-      { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+      { $group: { _id: null, total: { $sum: '$paidAmount' } } },
+    ]);
+    const pendingValue = await Order.aggregate([
+      { $match: { balanceAmount: { $gt: 0 } } },
+      { $group: { _id: null, total: { $sum: '$balanceAmount' } } },
     ]);
     // Fetch 5 most recent orders
     const recentOrders = await Order.find()
@@ -22,6 +25,12 @@ exports.getDashboardSummary = async (req, res) => {
       .limit(5)
       .populate('supplier', 'name')
       .populate('user', 'name');
+
+    const pendingPayments = await Order.find({ balanceAmount: { $gt: 0 } })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('orderNumber totalAmount paidAmount balanceAmount supplier createdAt')
+      .populate('supplier', 'name');
 
     const lowStockProducts = await Product.find({
       $expr: { $lte: ['$stockLevel', '$reorderPoint'] },
@@ -32,7 +41,9 @@ exports.getDashboardSummary = async (req, res) => {
       totalSuppliers,
       totalOrders,
       totalRevenue: ordersValue[0] ? ordersValue[0].total : 0,
+      totalPendingAmount: pendingValue[0] ? pendingValue[0].total : 0,
       recentOrders,
+      pendingPayments,
       lowStockProducts,
     });
   } catch (error) {

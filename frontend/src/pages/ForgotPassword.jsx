@@ -120,7 +120,7 @@ const ForgotPassword = () => {
                 </div>
             </Card>
             <p className="text-center text-white mt-4 small opacity-75">
-              © 2026 AI Smart Inventory & Supply Chain
+              © 2026 AI Smart Godown Inventory
             </p>
           </Col>
         </Row>

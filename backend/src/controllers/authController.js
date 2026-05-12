@@ -35,7 +35,6 @@ exports.registerUser = async (req, res) => {
       await userExists.save();
 
       const message = `Your new confirmation OTP is ${newOtp}. It is valid for 10 minutes.`;
-      console.log(`Resending OTP to: ${email} -> ${message}`); 
       
       try {
         await sendEmail({
@@ -70,7 +69,6 @@ exports.registerUser = async (req, res) => {
     if (user) {
       // Send OTP via Email
       const message = `Your confirmation OTP is ${otp}. It is valid for 10 minutes.`;
-      console.log(`Simulated Email Sent to: ${email} -> ${message}`); // REMOVE IN PROD
       
       try {
         await sendEmail({

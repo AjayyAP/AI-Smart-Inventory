@@ -2,13 +2,12 @@ import { useLocation } from 'react-router-dom';
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../context/appContexts';
 import { Container, Row, Col, Badge, Form } from 'react-bootstrap';
-import { FaPlus, FaTrash, FaSearch, FaMagic, FaEdit } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaMagic, FaEdit } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
 // API Services
 import productService from '../services/productService';
 import categoryService from '../services/categoryService';
-import supplierService from '../services/supplierService';
 import aiService from '../services/aiService';
 
 // Common Components
@@ -23,7 +22,6 @@ const Products = () => {
   const location = useLocation();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [showModal, setShowModal] = useState(false);
@@ -35,14 +33,13 @@ const Products = () => {
   const [filters, setFilters] = useState({
     search: '',
     category: '',
-    supplier: '',
     minPrice: '',
     maxPrice: '',
     stockStatus: ''
   });
 
   const [formData, setFormData] = useState({
-    name: '', sku: '', description: '', category: '', supplier: '', price: '', stockLevel: '', reorderPoint: ''
+    name: '', sku: '', description: '', category: '', price: '', stockLevel: '', reorderPoint: ''
   });
   const [images, setImages] = useState(null);
 
@@ -58,14 +55,12 @@ const Products = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [prodsRes, catsRes, supsRes] = await Promise.all([
+      const [prodsRes, catsRes] = await Promise.all([
         productService.getProducts(filters),
-        categoryService.getCategories(),
-        supplierService.getSuppliers()
+        categoryService.getCategories()
       ]);
       setProducts(prodsRes.data);
       setCategories(catsRes.data);
-      setSuppliers(supsRes.data);
     } catch {
       toast.error('Failed to fetch product data');
     } finally {
@@ -124,7 +119,7 @@ const Products = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditId(null);
-    setFormData({ name: '', sku: '', description: '', category: '', supplier: '', price: '', stockLevel: '', reorderPoint: '' });
+    setFormData({ name: '', sku: '', description: '', category: '', price: '', stockLevel: '', reorderPoint: '' });
     setImages(null);
   };
 
@@ -135,7 +130,6 @@ const Products = () => {
       sku: prod.sku,
       description: prod.description || '',
       category: prod.category._id || prod.category,
-      supplier: prod.supplier._id || prod.supplier,
       price: prod.price,
       stockLevel: prod.stockLevel,
       reorderPoint: prod.reorderPoint
@@ -187,8 +181,7 @@ const Products = () => {
     { label: 'SKU' },
     { label: 'Product Name' },
     { label: 'Category' },
-    { label: 'Supplier' },
-    { label: 'Price' },
+    { label: 'Wholesale Price' },
     { label: 'Stock' },
     { label: 'Actions', className: 'text-end' }
   ];
@@ -198,7 +191,6 @@ const Products = () => {
       <td><Badge bg="secondary" pill>{prod.sku}</Badge></td>
       <td className="fw-bold">{prod.name}</td>
       <td>{prod.category?.name || 'N/A'}</td>
-      <td>{prod.supplier?.name || 'N/A'}</td>
       <td>${prod.price.toFixed(2)}</td>
       <td>
         <Badge bg={prod.stockLevel <= prod.reorderPoint ? 'danger' : 'success'}>
@@ -221,7 +213,7 @@ const Products = () => {
   return (
     <Container fluid>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold mb-0 text-gradient">Products Inventory</h2>
+        <h2 className="fw-bold mb-0 text-gradient">Godown Products Inventory</h2>
         <Button icon={FaPlus} onClick={() => { handleCloseModal(); setShowModal(true); }}>
           Add Product
         </Button>
@@ -255,18 +247,6 @@ const Products = () => {
           <Col md={2}>
             <Input 
               type="select" 
-              label="Supplier" 
-              name="supplier" 
-              placeholder="All Suppliers" 
-              value={filters.supplier} 
-              onChange={handleFilterChange}
-              options={suppliers.map(s => ({ label: s.name, value: s._id }))}
-              className="mb-0"
-            />
-          </Col>
-          <Col md={2}>
-            <Input 
-              type="select" 
               label="Stock Status" 
               name="stockStatus" 
               placeholder="All Status" 
@@ -287,7 +267,7 @@ const Products = () => {
             </div>
           </Col>
           <Col md={1} className="text-end ms-auto">
-             <Button variant="outline-secondary" size="sm" onClick={() => setFilters({ search: '', category: '', supplier: '', minPrice: '', maxPrice: '', stockStatus: '' })}>
+             <Button variant="outline-secondary" size="sm" onClick={() => setFilters({ search: '', category: '', minPrice: '', maxPrice: '', stockStatus: '' })}>
                Clear
              </Button>
           </Col>
@@ -334,23 +314,11 @@ const Products = () => {
               placeholder="Select Category..."
             />
           </Col>
-          <Col md={6}>
-            <Input 
-              type="select" 
-              label="Supplier" 
-              name="supplier" 
-              value={formData.supplier} 
-              onChange={handleChange} 
-              required
-              options={suppliers.map(s => ({ label: s.name, value: s._id }))}
-              placeholder="Select Supplier..."
-            />
-          </Col>
         </Row>
 
         <Row>
           <Col md={4}>
-            <Input label="Price ($)" type="number" name="price" value={formData.price} onChange={handleChange} required />
+            <Input label="Wholesale Price ($)" type="number" name="price" value={formData.price} onChange={handleChange} required />
           </Col>
           <Col md={4}>
             <Input label="Initial Stock" type="number" name="stockLevel" value={formData.stockLevel} onChange={handleChange} required />
