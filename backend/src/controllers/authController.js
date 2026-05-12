@@ -25,13 +25,7 @@ exports.registerUser = async (req, res) => {
       
       // If not verified, update OTP and resend
       const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-      userExists.otp = newOtp;
-      userExists.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-      if (userCount === 1) {
-        userExists.role = 'Admin';
-        userExists.status = 'Active';
-      }
-      await userExists.save();
+      const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
       const message = `Your new confirmation OTP is ${newOtp}. It is valid for 10 minutes.`;
       
@@ -46,6 +40,14 @@ exports.registerUser = async (req, res) => {
         return res.status(500).json({ message: err.message || 'Email could not be sent' });
       }
 
+      userExists.otp = newOtp;
+      userExists.otpExpiresAt = otpExpiresAt;
+      if (userCount === 1) {
+        userExists.role = 'Admin';
+        userExists.status = 'Active';
+      }
+      await userExists.save();
+
       return res.status(201).json({ 
         message: 'New OTP sent to your email.', 
         email: userExists.email 
@@ -56,7 +58,7 @@ exports.registerUser = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    const user = await User.create({
+    const userData = {
       name,
       email,
       password,
@@ -64,23 +66,24 @@ exports.registerUser = async (req, res) => {
       otpExpiresAt,
       role: userCount === 0 ? 'Admin' : 'Staff',
       status: userCount === 0 ? 'Active' : 'Pending',
-    });
+    };
+
+    const message = `Your confirmation OTP is ${otp}. It is valid for 10 minutes.`;
+      
+    try {
+      await sendEmail({
+        email,
+        subject: 'Confirm your AI Smart Inventory Account',
+        message,
+      });
+    } catch (err) {
+      console.error('Email failed to send, ensure valid credentials', err);
+      return res.status(500).json({ message: err.message || 'Email could not be sent' });
+    }
+
+    const user = await User.create(userData);
 
     if (user) {
-      // Send OTP via Email
-      const message = `Your confirmation OTP is ${otp}. It is valid for 10 minutes.`;
-      
-      try {
-        await sendEmail({
-          email: user.email,
-          subject: 'Confirm your AI Smart Inventory Account',
-          message,
-        });
-      } catch (err) {
-        console.error('Email failed to send, ensure valid credentials', err);
-        return res.status(500).json({ message: err.message || 'Email could not be sent' });
-      }
-
       res.status(201).json({
         message: userCount === 0
           ? 'Admin account registered. Please check email for OTP.'
@@ -197,9 +200,7 @@ exports.forgotPassword = async (req, res) => {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.otp = otp;
-    user.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
-    await user.save();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
     const message = `Your password reset OTP is ${otp}. It expires in 10 minutes.`;
     
@@ -209,10 +210,13 @@ exports.forgotPassword = async (req, res) => {
         subject: 'Password Reset OTP - AI Smart Inventory',
         message,
       });
+      user.otp = otp;
+      user.otpExpiresAt = otpExpiresAt;
+      await user.save();
       res.json({ message: 'OTP sent to email' });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: 'Email could not be sent' });
+      res.status(500).json({ message: err.message || 'Email could not be sent' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
