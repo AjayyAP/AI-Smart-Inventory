@@ -1,6 +1,5 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail');
 
 const generateToken = (id) => {
@@ -44,6 +43,7 @@ exports.registerUser = async (req, res) => {
         });
       } catch (err) {
         console.error('Email failed to send', err);
+        return res.status(500).json({ message: err.message || 'Email could not be sent' });
       }
 
       return res.status(201).json({ 
@@ -78,6 +78,7 @@ exports.registerUser = async (req, res) => {
         });
       } catch (err) {
         console.error('Email failed to send, ensure valid credentials', err);
+        return res.status(500).json({ message: err.message || 'Email could not be sent' });
       }
 
       res.status(201).json({
