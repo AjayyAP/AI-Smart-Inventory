@@ -5,7 +5,16 @@ const User = require('../models/User');
 // @access  Private/Admin
 exports.getUsers = async (req, res) => {
   try {
-    let users = await User.find({}).select('-password').sort({ createdAt: -1 });
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 50);
+    const skip = (page - 1) * limit;
+
+    const total = await User.countDocuments();
+    let users = await User.find({})
+      .select('-password')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
     
     // Map over users to ensure Admins always show as Active (fixes old database entries)
     users = users.map(u => {
@@ -16,7 +25,13 @@ exports.getUsers = async (req, res) => {
       return userObj;
     });
 
-    res.json(users);
+    res.json({
+      users,
+      page,
+      pages: Math.ceil(total / limit) || 1,
+      total,
+      limit,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -13,6 +13,7 @@ import DataTable from '../components/common/DataTable';
 import Modal from '../components/common/Modal';
 import Input from '../components/common/Input';
 import Badge from '../components/common/Badge';
+import { isBlank } from '../utils/validation';
 
 const Orders = () => {
   const { user } = useContext(AuthContext);
@@ -44,6 +45,7 @@ const Orders = () => {
   });
 
   const [currentItem, setCurrentItem] = useState({ product: '', quantity: 1, priceAtPurchase: 0 });
+  const [errors, setErrors] = useState({});
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -72,6 +74,24 @@ const Orders = () => {
 
   const handleFilterChange = (e) => {
     setFilters({ ...filters, [e.target.name]: e.target.value });
+  };
+
+  const updateFormData = (updates) => {
+    setFormData({ ...formData, ...updates });
+    setErrors(prev => {
+      const next = { ...prev };
+      Object.keys(updates).forEach(key => delete next[key]);
+      return next;
+    });
+  };
+
+  const updateCurrentItem = (updates) => {
+    setCurrentItem({ ...currentItem, ...updates });
+    setErrors(prev => {
+      const next = { ...prev };
+      Object.keys(updates).forEach(key => delete next[key]);
+      return next;
+    });
   };
 
   const getProductById = (productId) => products.find((product) => product._id === productId);
@@ -137,19 +157,27 @@ const Orders = () => {
 
   const handleSubmitOrder = async () => {
     const finalItems = getVisibleItems();
+    const totalAmount = finalItems.reduce((sum, item) => sum + (item.priceAtPurchase * item.quantity), 0);
+    const paidAmount = Number(formData.paidAmount) || 0;
+    const nextErrors = {};
 
     if (finalItems.length === 0) {
-      return toast.warning('Please select at least one product');
+      nextErrors.product = 'Please select at least one product.';
     }
-    if (!formData.supplier) {
-      return toast.warning('Please select a wholesale supplier');
+    if (isBlank(formData.supplier)) {
+      nextErrors.supplier = 'Please select a wholesale supplier.';
     }
+    if (paidAmount < 0) nextErrors.paidAmount = 'Paid amount cannot be negative.';
+    if (paidAmount > totalAmount) nextErrors.paidAmount = 'Paid amount cannot be greater than total amount.';
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     if (!validateOrderStock(finalItems)) {
       return;
     }
 
     setIsSubmitting(true);
-    const totalAmount = finalItems.reduce((sum, item) => sum + (item.priceAtPurchase * item.quantity), 0);
 
     const payload = {
       orderNumber: formData.orderNumber,
@@ -173,6 +201,7 @@ const Orders = () => {
       setEditingId(null);
       setFormData({ orderNumber: `ORD-${Date.now()}`, supplier: '', items: [], paymentMethod: 'Cash', paidAmount: 0, paymentDate: '' });
       setCurrentItem({ product: '', quantity: 1, priceAtPurchase: 0 });
+      setErrors({});
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.message || `Failed to ${editingId ? 'update' : 'create'} order`);
@@ -340,6 +369,7 @@ const Orders = () => {
         onHide={() => {
           setShowModal(false);
           setEditingId(null);
+          setErrors({});
         }} 
         size="lg"
         title={editingId ? 'Edit Wholesale Order' : 'Create Wholesale Order'}
@@ -357,7 +387,8 @@ const Orders = () => {
               label="Wholesale Supplier" 
               required 
               value={formData.supplier} 
-              onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+              onChange={(e) => updateFormData({ supplier: e.target.value })}
+              error={errors.supplier}
               options={suppliers.map(s => ({ label: s.name, value: s._id }))}
               placeholder="Select Wholesale Supplier..."
             />
@@ -380,8 +411,9 @@ const Orders = () => {
               value={currentItem.product} 
               onChange={(e) => {
                 const p = products.find(prod => prod._id === e.target.value);
-                setCurrentItem({...currentItem, product: e.target.value, priceAtPurchase: p ? p.price : 0});
+                updateCurrentItem({ product: e.target.value, priceAtPurchase: p ? p.price : 0 });
               }}
+              error={errors.product}
               options={products.map(p => ({ label: `${p.name} ($${p.price})`, value: p._id }))}
               placeholder="Select Product..."
               className="mb-0"
@@ -394,13 +426,13 @@ const Orders = () => {
               min="1"
               max={getProductById(currentItem.product)?.stockLevel}
               value={currentItem.quantity}
-              onChange={(e) => setCurrentItem({...currentItem, quantity: e.target.value})}
-              error={getStockError(currentItem, [...formData.items, currentItem])}
+              onChange={(e) => updateCurrentItem({ quantity: e.target.value })}
+              error={errors.quantity || getStockError(currentItem, [...formData.items, currentItem])}
               className="mb-0"
             />
           </Col>
           <Col md={4}>
-            <Input type="number" label="Sale Price" step="0.01" value={currentItem.priceAtPurchase} onChange={(e) => setCurrentItem({...currentItem, priceAtPurchase: e.target.value})} className="mb-0" />
+            <Input type="number" label="Sale Price" min="0" step="0.01" value={currentItem.priceAtPurchase} onChange={(e) => updateCurrentItem({ priceAtPurchase: e.target.value })} className="mb-0" />
           </Col>
         </Row>
 
@@ -443,7 +475,7 @@ const Orders = () => {
               type="select"
               label="Payment Method"
               value={formData.paymentMethod}
-              onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+              onChange={(e) => updateFormData({ paymentMethod: e.target.value })}
               options={[
                 { label: 'Cash', value: 'Cash' },
                 { label: 'UPI', value: 'UPI' },
@@ -460,7 +492,8 @@ const Orders = () => {
               min="0"
               step="0.01"
               value={formData.paidAmount}
-              onChange={(e) => setFormData({ ...formData, paidAmount: e.target.value })}
+              onChange={(e) => updateFormData({ paidAmount: e.target.value })}
+              error={errors.paidAmount}
             />
           </Col>
           <Col md={4}>
@@ -468,7 +501,7 @@ const Orders = () => {
               type="date"
               label="Payment Date"
               value={formData.paymentDate}
-              onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
+              onChange={(e) => updateFormData({ paymentDate: e.target.value })}
             />
           </Col>
         </Row>

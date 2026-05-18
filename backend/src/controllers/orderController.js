@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const ActivityLog = require('../models/ActivityLog');
+const { badRequest, isBlank } = require('../utils/validators');
 
 const calculatePayment = (totalAmount, paidAmount = 0) => {
   const paid = Number(paidAmount) || 0;
@@ -9,12 +10,6 @@ const calculatePayment = (totalAmount, paidAmount = 0) => {
   const paymentStatus = paid <= 0 ? 'Pending' : balance > 0 ? 'Partial' : 'Paid';
 
   return { paidAmount: paid, balanceAmount: balance, paymentStatus };
-};
-
-const badRequest = (message) => {
-  const error = new Error(message);
-  error.statusCode = 400;
-  return error;
 };
 
 const updateProductStock = async (items, direction) => {
@@ -71,6 +66,27 @@ const validateOrderItemsStock = async (items, existingOrder = null) => {
   }
 };
 
+const validateOrderPayload = ({ supplier, items, totalAmount, paidAmount }) => {
+  if (isBlank(supplier)) throw badRequest('Wholesale supplier is required');
+  if (!items || items.length === 0) throw badRequest('No order items');
+
+  items.forEach((item) => {
+    if (isBlank(item.product)) throw badRequest('Product is required for every order item');
+    if (!Number.isInteger(Number(item.quantity)) || Number(item.quantity) <= 0) {
+      throw badRequest('Quantity must be at least 1');
+    }
+    if (Number(item.priceAtPurchase) < 0 || Number.isNaN(Number(item.priceAtPurchase))) {
+      throw badRequest('Sale price must be zero or greater');
+    }
+  });
+
+  const total = Number(totalAmount);
+  const paid = Number(paidAmount) || 0;
+  if (Number.isNaN(total) || total < 0) throw badRequest('Total amount is invalid');
+  if (paid < 0) throw badRequest('Paid amount cannot be negative');
+  if (paid > total) throw badRequest('Paid amount cannot be greater than total amount');
+};
+
 const sendError = (res, error) => {
   res.status(error.statusCode || 500).json({ message: error.message });
 };
@@ -82,9 +98,7 @@ exports.createOrder = async (req, res) => {
   try {
     const { orderNumber, supplier, items, totalAmount, paymentMethod, paidAmount, paymentDate } = req.body;
 
-    if (!items || items.length === 0) {
-      return res.status(400).json({ message: 'No order items' });
-    }
+    validateOrderPayload({ supplier, items, totalAmount, paidAmount });
 
     await validateOrderItemsStock(items);
 
@@ -180,9 +194,7 @@ exports.updateOrder = async (req, res) => {
   try {
     const { supplier, items, totalAmount, paymentMethod, paidAmount, paymentDate } = req.body;
     
-    if (!items || items.length === 0) {
-      return res.status(400).json({ message: 'No order items' });
-    }
+    validateOrderPayload({ supplier, items, totalAmount, paidAmount });
 
     const order = await Order.findById(req.params.id);
 

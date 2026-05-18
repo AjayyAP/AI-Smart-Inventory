@@ -7,12 +7,14 @@ import { Container, Row, Col } from 'react-bootstrap';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Card from '../components/common/Card';
+import { isStrongPassword, isValidEmail, passwordMessage } from '../utils/validation';
 
 const ForgotPassword = () => {
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { forgotPassword, resetPassword } = useContext(AuthContext);
@@ -20,6 +22,11 @@ const ForgotPassword = () => {
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
+    const nextErrors = {};
+    if (!isValidEmail(email)) nextErrors.email = 'Please enter a valid email address.';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setIsSubmitting(true);
     try {
       await forgotPassword(email);
@@ -33,6 +40,12 @@ const ForgotPassword = () => {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
+    const nextErrors = {};
+    if (!/^\d{6}$/.test(otp)) nextErrors.otp = 'OTP must be a 6-digit code.';
+    if (!isStrongPassword(newPassword)) nextErrors.newPassword = passwordMessage;
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setIsSubmitting(true);
     try {
       await resetPassword(email, otp, newPassword);
@@ -69,7 +82,11 @@ const ForgotPassword = () => {
                      type="email"
                      placeholder="name@company.com"
                      value={email}
-                     onChange={(e) => setEmail(e.target.value)}
+                     onChange={(e) => {
+                       setEmail(e.target.value);
+                       setErrors(prev => ({ ...prev, email: '' }));
+                     }}
+                     error={errors.email}
                      required
                    />
                    <Button 
@@ -88,7 +105,11 @@ const ForgotPassword = () => {
                      type="text"
                      placeholder="000000"
                      value={otp}
-                     onChange={(e) => setOtp(e.target.value)}
+                     onChange={(e) => {
+                       setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                       setErrors(prev => ({ ...prev, otp: '' }));
+                     }}
+                     error={errors.otp}
                      maxLength={6}
                      className="fw-bold text-primary text-center"
                      style={{ letterSpacing: '8px' }}
@@ -97,9 +118,13 @@ const ForgotPassword = () => {
                    <Input 
                      label="New Password"
                      type="password"
-                     placeholder="••••••••"
+                     placeholder="Ajay@123"
                      value={newPassword}
-                     onChange={(e) => setNewPassword(e.target.value)}
+                     onChange={(e) => {
+                       setNewPassword(e.target.value);
+                       setErrors(prev => ({ ...prev, newPassword: '' }));
+                     }}
+                     error={errors.newPassword}
                      required
                    />
                    <Button 

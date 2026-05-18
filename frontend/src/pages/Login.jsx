@@ -8,11 +8,13 @@ import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Card from '../components/common/Card';
 import Modal from '../components/common/Modal';
+import { isBlank, isValidEmail } from '../utils/validation';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
+  const [errors, setErrors] = useState({});
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -25,6 +27,12 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const nextErrors = {};
+    if (!isValidEmail(email)) nextErrors.email = 'Please enter a valid email address.';
+    if (isBlank(password)) nextErrors.password = 'Password is required.';
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setIsSubmitting(true);
     setPendingApproval(false);
     try {
@@ -85,7 +93,11 @@ const Login = () => {
                     type="email"
                     placeholder="name@company.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setErrors(prev => ({ ...prev, email: '' }));
+                    }}
+                    error={errors.email}
                     required
                   />
 
@@ -97,7 +109,11 @@ const Login = () => {
                     type="password"
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrors(prev => ({ ...prev, password: '' }));
+                    }}
+                    error={errors.password}
                     required
                   />
 

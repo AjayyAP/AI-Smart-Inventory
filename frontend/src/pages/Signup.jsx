@@ -8,12 +8,14 @@ import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Card from '../components/common/Card';
 import Modal from '../components/common/Modal';
+import { isBlank, isStrongPassword, isValidEmail, passwordMessage, requiredMessage } from '../utils/validation';
 
 const Signup = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
+  const [errors, setErrors] = useState({});
   
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,6 +25,14 @@ const Signup = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    const nextErrors = {};
+    if (isBlank(name)) nextErrors.name = requiredMessage('Full name');
+    if (!isValidEmail(email)) nextErrors.email = 'Please enter a valid email address.';
+    if (!isStrongPassword(password)) nextErrors.password = passwordMessage;
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setIsSubmitting(true);
     try {
       await register(name, email, password);
@@ -79,7 +89,11 @@ const Signup = () => {
                     label="Full Name"
                     placeholder="John Doe"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      setErrors(prev => ({ ...prev, name: '' }));
+                    }}
+                    error={errors.name}
                     required
                   />
 
@@ -88,18 +102,26 @@ const Signup = () => {
                     type="email"
                     placeholder="john@company.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setErrors(prev => ({ ...prev, email: '' }));
+                    }}
+                    error={errors.email}
                     required
                   />
 
                   <Input 
                     label="Password"
                     type="password"
-                    placeholder="Min. 6 characters"
+                    placeholder="Ajay@123"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setErrors(prev => ({ ...prev, password: '' }));
+                    }}
+                    error={errors.password}
                     required
-                    minLength="6"
+                    minLength="8"
                   />
 
                   <Button 

@@ -27,6 +27,7 @@ const Input = ({
           onChange={onChange} 
           required={required}
           isInvalid={!!error}
+          {...props}
         >
           {placeholder && <option value="">{placeholder}</option>}
           {options?.map(opt => (

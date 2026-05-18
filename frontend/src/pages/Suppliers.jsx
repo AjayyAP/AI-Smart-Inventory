@@ -11,6 +11,7 @@ import Card from '../components/common/Card';
 import DataTable from '../components/common/DataTable';
 import Modal from '../components/common/Modal';
 import Input from '../components/common/Input';
+import { isBlank, isValidEmail, isValidPhone, requiredMessage } from '../utils/validation';
 
 const Suppliers = () => {
   const { user } = useContext(AuthContext);
@@ -24,6 +25,7 @@ const Suppliers = () => {
   const [formData, setFormData] = useState({
     name: '', contactEmail: '', contactPhone: '', address: ''
   });
+  const [errors, setErrors] = useState({});
 
   const fetchSuppliers = useCallback(async () => {
     setLoading(true);
@@ -46,9 +48,18 @@ const Suppliers = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors(prev => ({ ...prev, [e.target.name]: '' }));
   };
 
   const handleCreate = async () => {
+    const nextErrors = {};
+    if (isBlank(formData.name)) nextErrors.name = requiredMessage('Supplier name');
+    if (!isValidEmail(formData.contactEmail)) nextErrors.contactEmail = 'Please enter a valid email address.';
+    if (!isValidPhone(formData.contactPhone)) nextErrors.contactPhone = 'Please enter a valid phone number.';
+    if (isBlank(formData.address)) nextErrors.address = requiredMessage('Address');
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setIsSubmitting(true);
     try {
       if (editId) {
@@ -71,6 +82,7 @@ const Suppliers = () => {
     setShowModal(false);
     setEditId(null);
     setFormData({ name: '', contactEmail: '', contactPhone: '', address: '' });
+    setErrors({});
   };
 
   const handleEditClick = (sup) => {
@@ -164,18 +176,18 @@ const Suppliers = () => {
       >
         <Row>
           <Col md={6}>
-            <Input label="Wholesale Supplier Name" name="name" value={formData.name} onChange={handleChange} required />
+            <Input label="Wholesale Supplier Name" name="name" value={formData.name} onChange={handleChange} error={errors.name} required />
           </Col>
           <Col md={6}>
-            <Input label="Contact Email" type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} required />
+            <Input label="Contact Email" type="email" name="contactEmail" value={formData.contactEmail} onChange={handleChange} error={errors.contactEmail} required />
           </Col>
         </Row>
         <Row>
           <Col md={6}>
-            <Input label="Contact Phone" name="contactPhone" value={formData.contactPhone} onChange={handleChange} required />
+            <Input label="Contact Phone" name="contactPhone" value={formData.contactPhone} onChange={handleChange} error={errors.contactPhone} required />
           </Col>
           <Col md={6}>
-            <Input label="Address" name="address" value={formData.address} onChange={handleChange} required />
+            <Input label="Address" name="address" value={formData.address} onChange={handleChange} error={errors.address} required />
           </Col>
         </Row>
       </Modal>

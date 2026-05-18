@@ -1,6 +1,27 @@
 const Product = require('../models/Product');
 const ActivityLog = require('../models/ActivityLog');
 const cloudinary = require('../config/cloudinary');
+const { badRequest, isBlank } = require('../utils/validators');
+
+const validateProduct = ({ name, sku, category, price, stockLevel, reorderPoint }, partial = false) => {
+  if ((!partial || name !== undefined) && isBlank(name)) throw badRequest('Product name is required');
+  if ((!partial || sku !== undefined) && isBlank(sku)) throw badRequest('SKU is required');
+  if ((!partial || category !== undefined) && isBlank(category)) throw badRequest('Category is required');
+
+  if ((!partial || price !== undefined) && (Number(price) < 0 || Number.isNaN(Number(price)))) {
+    throw badRequest('Price must be zero or greater');
+  }
+  if ((!partial || stockLevel !== undefined) && (Number(stockLevel) < 0 || Number.isNaN(Number(stockLevel)))) {
+    throw badRequest('Stock must be zero or greater');
+  }
+  if ((!partial || reorderPoint !== undefined) && (Number(reorderPoint) < 0 || Number.isNaN(Number(reorderPoint)))) {
+    throw badRequest('Reorder point must be zero or greater');
+  }
+};
+
+const sendError = (res, error) => {
+  res.status(error.statusCode || 500).json({ message: error.message });
+};
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -83,6 +104,7 @@ exports.createProduct = async (req, res) => {
       stockLevel,
       reorderPoint,
     } = req.body;
+    validateProduct({ name, sku, category, price, stockLevel, reorderPoint });
 
     // Cloudinary returns secure_url for the image URL
     const images = req.files ? req.files.map((file) => file.secure_url || file.url || file.path).filter(Boolean) : [];
@@ -112,7 +134,7 @@ exports.createProduct = async (req, res) => {
 
     res.status(201).json(product);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -124,6 +146,8 @@ exports.updateProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
 
     if (product) {
+      validateProduct(req.body, true);
+
       product.name = req.body.name || product.name;
       product.sku = req.body.sku || product.sku;
       product.description = req.body.description || product.description;
@@ -154,7 +178,7 @@ exports.updateProduct = async (req, res) => {
       res.status(404).json({ message: 'Product not found' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 

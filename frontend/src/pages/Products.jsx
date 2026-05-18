@@ -16,6 +16,7 @@ import Card from '../components/common/Card';
 import DataTable from '../components/common/DataTable';
 import Modal from '../components/common/Modal';
 import Input from '../components/common/Input';
+import { isBlank, requiredMessage } from '../utils/validation';
 
 const Products = () => {
   const { user } = useContext(AuthContext);
@@ -42,6 +43,7 @@ const Products = () => {
     name: '', sku: '', description: '', category: '', price: '', stockLevel: '', reorderPoint: ''
   });
   const [images, setImages] = useState(null);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -78,6 +80,7 @@ const Products = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors(prev => ({ ...prev, [e.target.name]: '' }));
   };
 
   const handleFilterChange = (e) => {
@@ -89,6 +92,17 @@ const Products = () => {
   };
 
   const handleCreate = async () => {
+    const nextErrors = {};
+    if (isBlank(formData.name)) nextErrors.name = requiredMessage('Product name');
+    if (isBlank(formData.sku)) nextErrors.sku = requiredMessage('SKU');
+    if (isBlank(formData.category)) nextErrors.category = requiredMessage('Category');
+    if (Number(formData.price) < 0 || Number.isNaN(Number(formData.price))) nextErrors.price = 'Price must be zero or greater.';
+    if (Number(formData.stockLevel) < 0 || Number.isNaN(Number(formData.stockLevel))) nextErrors.stockLevel = 'Stock must be zero or greater.';
+    if (Number(formData.reorderPoint) < 0 || Number.isNaN(Number(formData.reorderPoint))) nextErrors.reorderPoint = 'Reorder point must be zero or greater.';
+
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setIsSubmitting(true);
     
     const data = new FormData();
@@ -121,6 +135,7 @@ const Products = () => {
     setEditId(null);
     setFormData({ name: '', sku: '', description: '', category: '', price: '', stockLevel: '', reorderPoint: '' });
     setImages(null);
+    setErrors({});
   };
 
   const handleEditClick = (prod) => {
@@ -294,10 +309,10 @@ const Products = () => {
       >
         <Row>
           <Col md={6}>
-            <Input label="Product Name" name="name" value={formData.name} onChange={handleChange} required />
+            <Input label="Product Name" name="name" value={formData.name} onChange={handleChange} error={errors.name} required />
           </Col>
           <Col md={6}>
-            <Input label="SKU" name="sku" value={formData.sku} onChange={handleChange} required />
+            <Input label="SKU" name="sku" value={formData.sku} onChange={handleChange} error={errors.sku} required />
           </Col>
         </Row>
         
@@ -309,6 +324,7 @@ const Products = () => {
               name="category" 
               value={formData.category} 
               onChange={handleChange} 
+              error={errors.category}
               required
               options={categories.map(c => ({ label: c.name, value: c._id }))}
               placeholder="Select Category..."
@@ -318,13 +334,13 @@ const Products = () => {
 
         <Row>
           <Col md={4}>
-            <Input label="Wholesale Price ($)" type="number" name="price" value={formData.price} onChange={handleChange} required />
+            <Input label="Wholesale Price ($)" type="number" min="0" name="price" value={formData.price} onChange={handleChange} error={errors.price} required />
           </Col>
           <Col md={4}>
-            <Input label="Initial Stock" type="number" name="stockLevel" value={formData.stockLevel} onChange={handleChange} required />
+            <Input label="Initial Stock" type="number" min="0" name="stockLevel" value={formData.stockLevel} onChange={handleChange} error={errors.stockLevel} required />
           </Col>
           <Col md={4}>
-            <Input label="Reorder Point" type="number" name="reorderPoint" value={formData.reorderPoint} onChange={handleChange} required />
+            <Input label="Reorder Point" type="number" min="0" name="reorderPoint" value={formData.reorderPoint} onChange={handleChange} error={errors.reorderPoint} required />
           </Col>
         </Row>
 

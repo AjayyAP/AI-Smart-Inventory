@@ -1,4 +1,16 @@
 const Supplier = require('../models/Supplier');
+const { badRequest, isBlank, isValidEmail, isValidPhone } = require('../utils/validators');
+
+const validateSupplier = ({ name, contactEmail, contactPhone, address }, partial = false) => {
+  if ((!partial || name !== undefined) && isBlank(name)) throw badRequest('Supplier name is required');
+  if ((!partial || contactEmail !== undefined) && !isValidEmail(contactEmail)) throw badRequest('Please enter a valid supplier email');
+  if ((!partial || contactPhone !== undefined) && !isValidPhone(contactPhone)) throw badRequest('Please enter a valid supplier phone number');
+  if ((!partial || address !== undefined) && isBlank(address)) throw badRequest('Supplier address is required');
+};
+
+const sendError = (res, error) => {
+  res.status(error.statusCode || 500).json({ message: error.message });
+};
 
 // @desc    Get all suppliers
 // @route   GET /api/suppliers
@@ -26,6 +38,8 @@ exports.getSuppliers = async (req, res) => {
 exports.createSupplier = async (req, res) => {
   try {
     const { name, contactEmail, contactPhone, address } = req.body;
+    validateSupplier({ name, contactEmail, contactPhone, address });
+
     const supplier = await Supplier.create({
       name,
       contactEmail,
@@ -34,7 +48,7 @@ exports.createSupplier = async (req, res) => {
     });
     res.status(201).json(supplier);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -60,6 +74,8 @@ exports.getSupplierById = async (req, res) => {
 exports.updateSupplier = async (req, res) => {
   try {
     const { name, contactEmail, contactPhone, address } = req.body;
+    validateSupplier({ name, contactEmail, contactPhone, address }, true);
+
     const supplier = await Supplier.findById(req.params.id);
 
     if (supplier) {
@@ -74,7 +90,7 @@ exports.updateSupplier = async (req, res) => {
       res.status(404).json({ message: 'Supplier not found' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 

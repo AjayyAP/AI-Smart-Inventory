@@ -1,11 +1,16 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const sendEmail = require('../utils/sendEmail');
+const { badRequest, isBlank, isStrongPassword, isValidEmail } = require('../utils/validators');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d',
   });
+};
+
+const sendError = (res, error) => {
+  res.status(error.statusCode || 500).json({ message: error.message });
 };
 
 // @desc    Register user & send OTP
@@ -14,6 +19,12 @@ const generateToken = (id) => {
 exports.registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+
+    if (isBlank(name)) throw badRequest('Full name is required');
+    if (!isValidEmail(email)) throw badRequest('Please enter a valid email address');
+    if (!isStrongPassword(password)) {
+      throw badRequest('Password must be at least 8 characters and include uppercase, lowercase, number, and special character');
+    }
 
     const userExists = await User.findOne({ email });
     const userCount = await User.countDocuments();
@@ -94,7 +105,7 @@ exports.registerUser = async (req, res) => {
       res.status(400).json({ message: 'Invalid user data' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -104,6 +115,9 @@ exports.registerUser = async (req, res) => {
 exports.verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
+    if (!isValidEmail(email)) throw badRequest('Please enter a valid email address');
+    if (!/^\d{6}$/.test(String(otp || ''))) throw badRequest('OTP must be a 6-digit code');
+
     const user = await User.findOne({ email });
 
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -141,7 +155,7 @@ exports.verifyOtp = async (req, res) => {
       token: generateToken(user._id),
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -151,6 +165,9 @@ exports.verifyOtp = async (req, res) => {
 exports.authUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!isValidEmail(email) || isBlank(password)) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
 
     const user = await User.findOne({ email });
 
@@ -184,7 +201,7 @@ exports.authUser = async (req, res) => {
       res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 // @desc    Forgot Password - Send OTP
@@ -193,6 +210,8 @@ exports.authUser = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+    if (!isValidEmail(email)) throw badRequest('Please enter a valid email address');
+
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -219,7 +238,7 @@ exports.forgotPassword = async (req, res) => {
       res.status(500).json({ message: err.message || 'Email could not be sent' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -229,6 +248,12 @@ exports.forgotPassword = async (req, res) => {
 exports.resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
+    if (!isValidEmail(email)) throw badRequest('Please enter a valid email address');
+    if (!/^\d{6}$/.test(String(otp || ''))) throw badRequest('OTP must be a 6-digit code');
+    if (!isStrongPassword(newPassword)) {
+      throw badRequest('Password must be at least 8 characters and include uppercase, lowercase, number, and special character');
+    }
+
     const user = await User.findOne({ email });
 
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -244,7 +269,7 @@ exports.resetPassword = async (req, res) => {
 
     res.json({ message: 'Password reset successful' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 
@@ -254,6 +279,11 @@ exports.resetPassword = async (req, res) => {
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
+    if (isBlank(currentPassword)) throw badRequest('Current password is required');
+    if (!isStrongPassword(newPassword)) {
+      throw badRequest('Password must be at least 8 characters and include uppercase, lowercase, number, and special character');
+    }
+
     const user = await User.findById(req.user._id);
 
     if (user && (await user.matchPassword(currentPassword))) {
@@ -264,7 +294,7 @@ exports.changePassword = async (req, res) => {
       res.status(401).json({ message: 'Invalid current password' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 };
 

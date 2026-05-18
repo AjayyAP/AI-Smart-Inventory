@@ -11,6 +11,7 @@ import Card from '../components/common/Card';
 import DataTable from '../components/common/DataTable';
 import Modal from '../components/common/Modal';
 import Input from '../components/common/Input';
+import { isBlank, requiredMessage } from '../utils/validation';
 
 const Categories = () => {
   const { user } = useContext(AuthContext);
@@ -22,6 +23,7 @@ const Categories = () => {
   
   const [search, setSearch] = useState('');
   const [formData, setFormData] = useState({ name: '', description: '' });
+  const [errors, setErrors] = useState({});
 
   const fetchCategories = useCallback(async () => {
     setLoading(true);
@@ -44,9 +46,15 @@ const Categories = () => {
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors(prev => ({ ...prev, [e.target.name]: '' }));
   };
 
   const handleCreate = async () => {
+    const nextErrors = {};
+    if (isBlank(formData.name)) nextErrors.name = requiredMessage('Category name');
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setIsSubmitting(true);
     try {
       if (editId) {
@@ -69,6 +77,7 @@ const Categories = () => {
     setShowModal(false);
     setEditId(null);
     setFormData({ name: '', description: '' });
+    setErrors({});
   };
 
   const handleEditClick = (cat) => {
@@ -156,6 +165,7 @@ const Categories = () => {
           name="name"
           value={formData.name} 
           onChange={handleInputChange} 
+          error={errors.name}
           required 
         />
         <Input 

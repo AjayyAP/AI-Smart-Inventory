@@ -1,6 +1,6 @@
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../context/appContexts';
-import { Container, Row, Col, Badge, Form } from 'react-bootstrap';
+import { Container, Row, Col, Badge, Form, Pagination } from 'react-bootstrap';
 import { FaTrash, FaCheckCircle, FaUserShield } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
@@ -9,31 +9,46 @@ import Card from '../components/common/Card';
 import DataTable from '../components/common/DataTable';
 import Button from '../components/common/Button';
 
+const USERS_PER_PAGE = 10;
+
 const Users = () => {
   const { user } = useContext(AuthContext);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0, limit: USERS_PER_PAGE });
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async (page = 1) => {
+    setLoading(true);
     try {
-      const data = await userService.getUsers();
-      setUsers(data);
+      const data = await userService.getUsers({ page, limit: USERS_PER_PAGE });
+      setUsers(data.users || []);
+      setPagination({
+        page: data.page || 1,
+        pages: data.pages || 1,
+        total: data.total || 0,
+        limit: data.limit || USERS_PER_PAGE,
+      });
     } catch {
       toast.error('Failed to load users');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    fetchUsers(1);
+  }, [fetchUsers]);
+
+  const goToPage = (page) => {
+    if (page < 1 || page > pagination.pages || page === pagination.page) return;
+    fetchUsers(page);
+  };
 
   const handleRoleChange = async (userId, newRole) => {
     try {
       await userService.updateUser(userId, { role: newRole });
       toast.success(`User role updated to ${newRole}`);
-      fetchUsers();
+      fetchUsers(pagination.page);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update role');
     }
@@ -43,7 +58,7 @@ const Users = () => {
     try {
       await userService.updateUser(userId, { status: 'Active' });
       toast.success('User approved successfully');
-      fetchUsers();
+      fetchUsers(pagination.page);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to approve user');
     }
@@ -54,7 +69,7 @@ const Users = () => {
       try {
         await userService.deleteUser(userId);
         toast.success('User deleted');
-        fetchUsers();
+        fetchUsers(users.length === 1 && pagination.page > 1 ? pagination.page - 1 : pagination.page);
       } catch (error) {
         toast.error(error.response?.data?.message || 'Failed to delete user');
       }
@@ -142,6 +157,22 @@ const Users = () => {
           renderRow={renderUserRow}
           loading={loading} 
         />
+        {pagination.total > pagination.limit && (
+          <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 px-3 pb-3">
+            <div className="small text-muted">
+              Showing page {pagination.page} of {pagination.pages} ({pagination.total} users)
+            </div>
+            <Pagination className="mb-0">
+              <Pagination.Prev disabled={pagination.page === 1} onClick={() => goToPage(pagination.page - 1)} />
+              {Array.from({ length: pagination.pages }, (_, index) => index + 1).map((page) => (
+                <Pagination.Item key={page} active={page === pagination.page} onClick={() => goToPage(page)}>
+                  {page}
+                </Pagination.Item>
+              ))}
+              <Pagination.Next disabled={pagination.page === pagination.pages} onClick={() => goToPage(pagination.page + 1)} />
+            </Pagination>
+          </div>
+        )}
       </Card>
     </Container>
   );
